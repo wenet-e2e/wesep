@@ -186,12 +186,12 @@ class TFGridNet(nn.Module):
                     approx_qk_dim=attn_approx_qk_dim,
                     activation=activation,
                     eps=eps,
-                )
-            )
+                ))
 
-        self.deconv = nn.ConvTranspose2d(
-            emb_dim, n_srcs * 2, ks, padding=padding
-        )
+        self.deconv = nn.ConvTranspose2d(emb_dim,
+                                         n_srcs * 2,
+                                         ks,
+                                         padding=padding)
 
     def forward(
         self,
@@ -220,10 +220,11 @@ class TFGridNet(nn.Module):
         input = input / mix_std_  # RMS normalization
 
         input = input.transpose(1, 2).reshape(
-            -1, input.size(1)
-        )  # [B, N, M] -> [B*M, N]
+            -1, input.size(1))  # [B, N, M] -> [B*M, N]
         window_func = getattr(torch, f"{self.window}_window")
-        window = window_func(self.n_fft, dtype=input.dtype, device=input.device)
+        window = window_func(self.n_fft,
+                             dtype=input.dtype,
+                             device=input.device)
 
         batch = torch.stft(
             input,
@@ -236,9 +237,8 @@ class TFGridNet(nn.Module):
         )  # [B, F, T]
         batch = batch.transpose(1, 2)  # [B, T, F]
 
-        batch0 = batch.view(
-            batch_size, -1, batch.size(1), batch.size(2)
-        )  # [B, M, T, F]
+        batch0 = batch.view(batch_size, -1, batch.size(1),
+                            batch.size(2))  # [B, M, T, F]
         # ilens = torch.full((batch_size,), n_samples, dtype=torch.long)
         batch = torch.cat((batch0.real, batch0.imag), dim=1)  # [B, 2*M, T, F]
         n_batch, _, n_frames, n_freqs = batch.shape
@@ -246,8 +246,7 @@ class TFGridNet(nn.Module):
         batch = self.conv(batch)  # [B, -1, T, F]
 
         predict_speaker_lable = torch.tensor(0.0).to(
-            spk_emb_input.device
-        )  # dummy
+            spk_emb_input.device)  # dummy
         if self.joint_training:
             if not self.spk_feat:
                 if self.feat_type == "consistent":
@@ -256,8 +255,7 @@ class TFGridNet(nn.Module):
                         spk_emb_input = self.spk_encoder(spk_emb_input) + 1e-8
                         spk_emb_input = spk_emb_input.log()
                         spk_emb_input = spk_emb_input - torch.mean(
-                            spk_emb_input, dim=-1, keepdim=True
-                        )
+                            spk_emb_input, dim=-1, keepdim=True)
                         spk_emb_input = spk_emb_input.permute(0, 2, 1)
 
             tmp_spk_emb_input = self.spk_model(spk_emb_input)
@@ -272,8 +270,8 @@ class TFGridNet(nn.Module):
 
         for ii in range(self.n_layers):
             batch = torch.transpose(
-                self.spk_fuse(batch.transpose(2, 3), spk_embedding), 2, 3
-            )  # [B, -1, T, F]
+                self.spk_fuse(batch.transpose(2, 3), spk_embedding), 2,
+                3)  # [B, -1, T, F]
             batch = self.blocks[ii](batch)  # [B, -1, T, F]
 
         batch = self.deconv(batch)  # [B, n_srcs*2, T, F]
@@ -309,6 +307,5 @@ class TFGridNet(nn.Module):
     @staticmethod
     def pad2(input_tensor, target_len):
         input_tensor = torch.nn.functional.pad(
-            input_tensor, (0, target_len - input_tensor.shape[-1])
-        )
+            input_tensor, (0, target_len - input_tensor.shape[-1]))
         return input_tensor

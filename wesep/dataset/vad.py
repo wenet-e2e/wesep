@@ -3,6 +3,7 @@ import soundfile as sf
 
 
 class VoiceActivityDetection:
+
     def __init__(self, wave):
         self.wave = wave
 
@@ -19,7 +20,7 @@ class VoiceActivityDetection:
         for start, end in zip(slices[:-1], slices[1:]):
             start_audio = start * frequency
             end_audio = (end + overlap) * frequency
-            audio_slice = signal[int(start_audio) : int(end_audio)]
+            audio_slice = signal[int(start_audio):int(end_audio)]
             # print(len(audio_slice))
             audio_slices.append(audio_slice)
 
@@ -43,9 +44,10 @@ class VoiceActivityDetection:
         energies = []
         for audio in audio_slices:
             chunk_len = len(audio) / 10
-            chunk_slice = np.arange(
-                0, len(audio) + chunk_len, chunk_len, dtype=np.intc
-            )
+            chunk_slice = np.arange(0,
+                                    len(audio) + chunk_len,
+                                    chunk_len,
+                                    dtype=np.intc)
 
             for start, end in zip(chunk_slice[:-1], chunk_slice[1:]):
 
@@ -69,9 +71,10 @@ class VoiceActivityDetection:
         i = 0
         for audio in audio_slices:
             chunk_len = len(audio) / 10
-            chunk_slice = np.arange(
-                0, len(audio) + chunk_len, chunk_len, dtype=np.intc
-            )
+            chunk_slice = np.arange(0,
+                                    len(audio) + chunk_len,
+                                    chunk_len,
+                                    dtype=np.intc)
             count = 0
             for start, end in zip(chunk_slice[:-1], chunk_slice[1:]):
                 energy = self.calc_energy(audio[start:end])
@@ -87,8 +90,8 @@ class VoiceActivityDetection:
                 if len(audio) < self.slice_len * 16000:
                     # print(self.slice_len*16000-len(audio))
                     audio = np.concatenate(
-                        [audio, np.zeros(self.slice_len * 16000 - len(audio))]
-                    )
+                        [audio,
+                         np.zeros(self.slice_len * 16000 - len(audio))])
                 fin_audios.append(audio)
 
             i += 1

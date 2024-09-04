@@ -31,11 +31,9 @@ def calc_cos(orientation_rad):
     return torch.stack(
         [
             torch.cos(
-                orientation_rad[..., 0] * torch.sin(orientation_rad[..., 1])
-            ),
+                orientation_rad[..., 0] * torch.sin(orientation_rad[..., 1])),
             torch.sin(
-                orientation_rad[..., 0] * torch.sin(orientation_rad[..., 1])
-            ),
+                orientation_rad[..., 0] * torch.sin(orientation_rad[..., 1])),
             torch.cos(orientation_rad[..., 1]),
         ],
         -1,
@@ -72,9 +70,10 @@ def freq_invariant_decay_func(cos_theta, pattern="cardioid"):
         raise NotImplementedError
 
 
-def freq_invariant_src_decay_func(
-    mic_pos, src_pos, src_orientation_rad, pattern="cardioid"
-):
+def freq_invariant_src_decay_func(mic_pos,
+                                  src_pos,
+                                  src_orientation_rad,
+                                  pattern="cardioid"):
     """
     mic_pos: [n_mic, 3] (tensor)
     src_pos: [n_src, 3] (tensor)
@@ -88,8 +87,7 @@ def freq_invariant_src_decay_func(
 
     # receiver to src vector
     rcv_to_src_vec = mic_pos.unsqueeze(1) - src_pos.unsqueeze(
-        0
-    )  # [n_mic, n_src, 3]
+        0)  # [n_mic, n_src, 3]
 
     cos_theta = (rcv_to_src_vec * orV_src).sum(-1)  # [n_mic, n_src]
     cos_theta /= torch.sqrt(rcv_to_src_vec.pow(2).sum(-1))
@@ -98,9 +96,10 @@ def freq_invariant_src_decay_func(
     return freq_invariant_decay_func(cos_theta, pattern)
 
 
-def freq_invariant_mic_decay_func(
-    mic_pos, img_pos, mic_orientation_rad, pattern="cardioid"
-):
+def freq_invariant_mic_decay_func(mic_pos,
+                                  img_pos,
+                                  mic_orientation_rad,
+                                  pattern="cardioid"):
     """
     mic_pos: [n_mic, 3] (tensor)
     img_pos: [n_src, n_image, 3] (tensor)
@@ -180,8 +179,8 @@ def FRAM_RIR(
     image = np.random.choice(range(n_image[0], n_image[1]))
 
     R = torch.tensor(
-        1.0 / (2 * (1.0 / room_dim[0] + 1.0 / room_dim[1] + 1.0 / room_dim[2]))
-    )
+        1.0 / (2 *
+               (1.0 / room_dim[0] + 1.0 / room_dim[1] + 1.0 / room_dim[2])))
 
     eps = np.finfo(np.float16).eps
     mic_position = torch.from_numpy(mic_pos)
@@ -190,10 +189,8 @@ def FRAM_RIR(
     num_src = src_position.shape[0]
 
     # [nmic, nsource]
-    direct_dist = (
-        (mic_position.unsqueeze(1) - src_position.unsqueeze(0)).pow(2).sum(-1)
-        + 1e-3
-    ).sqrt()
+    direct_dist = ((mic_position.unsqueeze(1) -
+                    src_position.unsqueeze(0)).pow(2).sum(-1) + 1e-3).sqrt()
     # [nsource]
     nearest_dist, nearest_mic_idx = direct_dist.min(0)
     # [nsource, 3]
@@ -205,13 +202,8 @@ def FRAM_RIR(
     velocity = 340.0
     T60 = torch.tensor(T60)
 
-    direct_idx = (
-        torch.ceil(direct_dist * sample_sr / velocity)
-        .long()
-        .view(
-            ns,
-        )
-    )
+    direct_idx = (torch.ceil(direct_dist * sample_sr / velocity).long().view(
+        ns, ))
     rir_length = int(np.ceil(sample_sr * T60))
 
     resample1 = Resample(sample_sr, sample_sr // int(np.sqrt(ratio)))
@@ -225,13 +217,12 @@ def FRAM_RIR(
 
     dist_prob = torch.linspace(0.0, 1.0, rir_length)
     dist_prob /= dist_prob.sum()
-    dist_select_idx = dist_prob.multinomial(
-        num_samples=int(image * num_src), replacement=True
-    ).view(num_src, image)
+    dist_select_idx = dist_prob.multinomial(num_samples=int(image * num_src),
+                                            replacement=True).view(
+                                                num_src, image)
 
     dist_nearest_ratio = torch.stack(
-        [dist_range[i][dist_select_idx[i]] for i in range(num_src)], 0
-    )
+        [dist_range[i][dist_select_idx[i]] for i in range(num_src)], 0)
 
     # apply different dist ratios to mirophones
     azm = torch.FloatTensor(num_src, image).uniform_(-np.pi, np.pi)
@@ -247,45 +238,31 @@ def FRAM_RIR(
     )
     # [nsource] x [nsource, T] x [nsource, nimage, 3] => [nsource, nimage, 3]
     image2nearest_dist = nearest_dist.view(
-        -1, 1, 1
-    ) * dist_nearest_ratio.unsqueeze(-1)
-    image_position = (
-        nearest_mic_position.unsqueeze(1) + image2nearest_dist * unit_3d
-    )
+        -1, 1, 1) * dist_nearest_ratio.unsqueeze(-1)
+    image_position = (nearest_mic_position.unsqueeze(1) +
+                      image2nearest_dist * unit_3d)
     # [nmic, nsource, nimage]
-    dist = (
-        (mic_position.view(-1, 1, 1, 3) - image_position.unsqueeze(0))
-        .pow(2)
-        .sum(-1)
-        + 1e-3
-    ).sqrt()
+    dist = ((mic_position.view(-1, 1, 1, 3) -
+             image_position.unsqueeze(0)).pow(2).sum(-1) + 1e-3).sqrt()
 
     # reflection perturbation
     reflect_max = (torch.log10(velocity * T60) - 3) / torch.log10(reflect_coef)
-    reflect_ratio = (dist / (velocity * T60)) * (
-        reflect_max.view(1, -1, 1) - 1
-    ) + 1
+    reflect_ratio = (dist /
+                     (velocity * T60)) * (reflect_max.view(1, -1, 1) - 1) + 1
     reflect_pertub = torch.FloatTensor(num_src, image).uniform_(
-        a, b
-    ) * dist_nearest_ratio.pow(tau)
-    reflect_ratio = torch.maximum(
-        reflect_ratio + reflect_pertub.unsqueeze(0), torch.ones(1)
-    )
+        a, b) * dist_nearest_ratio.pow(tau)
+    reflect_ratio = torch.maximum(reflect_ratio + reflect_pertub.unsqueeze(0),
+                                  torch.ones(1))
 
     # [nmic, nsource, 1 + nimage]
     dist = torch.cat([direct_dist.unsqueeze(2), dist], 2)
-    reflect_ratio = torch.cat(
-        [torch.zeros(n_mic, num_src, 1), reflect_ratio], 2
-    )
+    reflect_ratio = torch.cat([torch.zeros(n_mic, num_src, 1), reflect_ratio],
+                              2)
 
-    delta_idx = (
-        torch.minimum(
-            torch.ceil(dist * sample_sr / velocity),
-            torch.ones(1) * rir_length - 1,
-        )
-        .long()
-        .view(ns, -1)
-    )
+    delta_idx = (torch.minimum(
+        torch.ceil(dist * sample_sr / velocity),
+        torch.ones(1) * rir_length - 1,
+    ).long().view(ns, -1))
     delta_decay = reflect_coef.pow(reflect_ratio) / dist
 
     #################################
@@ -294,32 +271,25 @@ def FRAM_RIR(
     if src_pattern != "omni":
         # randomly sample each image's relative orientation with respect to the original source
         # equivalent to a random decay corresponds to the source's orientation pattern decay
-        img_orientation_rad = torch.FloatTensor(num_src, image, 2).uniform_(
-            -np.pi, np.pi
-        )
+        img_orientation_rad = torch.FloatTensor(num_src, image,
+                                                2).uniform_(-np.pi, np.pi)
         img_cos_theta = torch.cos(img_orientation_rad[..., 0]) * torch.cos(
-            img_orientation_rad[..., 1]
-        )  # [nsource, nimage]
+            img_orientation_rad[..., 1])  # [nsource, nimage]
         img_orientation_decay = freq_invariant_decay_func(
-            img_cos_theta, pattern=src_pattern
-        )  # [nsource, nimage]
+            img_cos_theta, pattern=src_pattern)  # [nsource, nimage]
 
         # direct path orientation should use the provided parameter
         if src_orientation_rad is None:
             # assume random orientation if not given
             src_orientation_azi = torch.FloatTensor(num_src).uniform_(
-                -np.pi, np.pi
-            )
+                -np.pi, np.pi)
             src_orientation_ele = torch.FloatTensor(num_src).uniform_(
-                -np.pi, np.pi
-            )
+                -np.pi, np.pi)
             src_orientation_rad = torch.stack(
-                [src_orientation_azi, src_orientation_ele], -1
-            )
+                [src_orientation_azi, src_orientation_ele], -1)
         else:
             src_orientation_rad = torch.from_numpy(
-                src_orientation_rad
-            )  # [nsource, 2]
+                src_orientation_rad)  # [nsource, 2]
 
         src_orientation_decay = freq_invariant_src_decay_func(
             mic_position,
@@ -336,13 +306,12 @@ def FRAM_RIR(
         # when not given, assume that all mics facing up (positive z axis)
         if mic_orientation_rad is None:
             mic_orientation_rad = torch.stack(
-                [torch.zeros(n_mic), torch.zeros(n_mic)], -1
-            )  # [nmic, 2]
+                [torch.zeros(n_mic), torch.zeros(n_mic)], -1)  # [nmic, 2]
         else:
             mic_orientation_rad = torch.from_numpy(mic_orientation_rad)
         all_src_img_pos = torch.cat(
-            (src_position.unsqueeze(1), image_position), 1
-        )  # [nsource, nimage+1, 3]
+            (src_position.unsqueeze(1), image_position),
+            1)  # [nsource, nimage+1, 3]
         mic_orientation_decay = freq_invariant_mic_decay_func(
             mic_position,
             all_src_img_pos,
@@ -359,12 +328,10 @@ def FRAM_RIR(
         valid_mask = np.ones(len(remainder_idx))
         while np.sum(valid_mask) > 0:
             valid_remainder_idx, unique_remainder_idx = np.unique(
-                remainder_idx, return_index=True
-            )
+                remainder_idx, return_index=True)
             rir[i][valid_remainder_idx] += (
-                delta_decay[i][unique_remainder_idx]
-                * valid_mask[unique_remainder_idx]
-            )
+                delta_decay[i][unique_remainder_idx] *
+                valid_mask[unique_remainder_idx])
             valid_mask[unique_remainder_idx] = 0
             remainder_idx[unique_remainder_idx] = 0
 
@@ -373,18 +340,16 @@ def FRAM_RIR(
     for i in range(ns):
         direct_mask[
             i,
-            max(direct_idx[i] + sample_sr * direct_range[0] // 1000, 0) : min(
-                direct_idx[i] + sample_sr * direct_range[1] // 1000, rir_length
-            ),
-        ] = 1.0
+            max(direct_idx[i] + sample_sr * direct_range[0] // 1000, 0
+                ):min(direct_idx[i] +
+                      sample_sr * direct_range[1] // 1000, rir_length), ] = 1.0
 
     rir_direct = rir * direct_mask
 
     all_rir = torch.stack([rir, rir_direct], 1).view(ns * 2, -1)
     rir_downsample = resample1(all_rir)
-    rir_hp = highpass_biquad(
-        rir_downsample, sample_sr // int(np.sqrt(ratio)), 80.0
-    )
+    rir_hp = highpass_biquad(rir_downsample, sample_sr // int(np.sqrt(ratio)),
+                             80.0)
     rir = resample2(rir_hp).float().view(n_mic, num_src, 2, -1)
 
     return rir[:, :, 0].data.numpy(), rir[:, :, 1].data.numpy()
@@ -402,20 +367,16 @@ def sample_mic_arch(n_mic, mic_spacing=None, bounding_box=None):
     else:
         mic_arch = []
         while len(mic_arch) < sample_n_mic:
-            this_mic_pos = np.random.uniform(
-                np.array([0, 0, 0]), np.array(bounding_box)
-            )
+            this_mic_pos = np.random.uniform(np.array([0, 0, 0]),
+                                             np.array(bounding_box))
 
             if len(mic_arch) != 0:
                 ok = True
                 for other_mic_pos in mic_arch:
-                    this_mic_spacing = np.linalg.norm(
-                        this_mic_pos - other_mic_pos
-                    )
-                    if (
-                        this_mic_spacing < mic_spacing[0]
-                        or this_mic_spacing > mic_spacing[1]
-                    ):
+                    this_mic_spacing = np.linalg.norm(this_mic_pos -
+                                                      other_mic_pos)
+                    if (this_mic_spacing < mic_spacing[0]
+                            or this_mic_spacing > mic_spacing[1]):
                         ok = False
                         break
                 if ok:
@@ -440,9 +401,8 @@ def sample_src_pos(
     # random sample the source positon
     src_pos = []
     while len(src_pos) < num_src:
-        pos = np.random.uniform(
-            np.array(min_dis_wall), np.array(room_dim) - np.array(min_dis_wall)
-        )
+        pos = np.random.uniform(np.array(min_dis_wall),
+                                np.array(room_dim) - np.array(min_dis_wall))
         dis = np.linalg.norm(pos - np.array(array_pos))
 
         if dis >= min_mic_dis and dis <= max_mic_dis:
@@ -468,8 +428,7 @@ def sample_mic_array_pos(mic_arch, room_dim, min_dis_wall=None):
         rotate_x = valuex * np.cos(angle) + valuey * np.sin(angle)  # [nmic]
         rotate_y = valuey * np.cos(angle) - valuex * np.sin(angle)
         return np.stack(
-            [rotate_x, rotate_y, np.zeros_like(rotate_x)], -1
-        )  # [nmic, 3]
+            [rotate_x, rotate_y, np.zeros_like(rotate_x)], -1)  # [nmic, 3]
 
     if min_dis_wall is None:
         min_dis_wall = [0.5, 0.5, 0.5]
@@ -489,18 +448,14 @@ def sample_mic_array_pos(mic_arch, room_dim, min_dis_wall=None):
                 np.random.uniform(np.array([0, 0, 0]), np.array(bounding_box))
             ]
             while len(mic_arch) < sample_n_mic:
-                this_mic_pos = np.random.uniform(
-                    np.array([0, 0, 0]), np.array(bounding_box)
-                )
+                this_mic_pos = np.random.uniform(np.array([0, 0, 0]),
+                                                 np.array(bounding_box))
                 ok = True
                 for other_mic_pos in mic_arch:
-                    this_mic_spacing = np.linalg.norm(
-                        this_mic_pos - other_mic_pos
-                    )
-                    if (
-                        this_mic_spacing < mic_spacing[0]
-                        or this_mic_spacing > mic_spacing[1]
-                    ):
+                    this_mic_spacing = np.linalg.norm(this_mic_pos -
+                                                      other_mic_pos)
+                    if (this_mic_spacing < mic_spacing[0]
+                            or this_mic_spacing > mic_spacing[1]):
                         ok = False
                         break
                 if ok:
@@ -518,9 +473,8 @@ def sample_mic_array_pos(mic_arch, room_dim, min_dis_wall=None):
     mic_pos = array_pos + mic_arch
     # assume the array is always horizontal
     rotate_azm = np.random.uniform(-np.pi, np.pi)
-    mic_pos = array_pos + rotate(
-        rotate_azm, mic_arch[:, 0], mic_arch[:, 1]
-    )  # [n_mic, 3]
+    mic_pos = array_pos + rotate(rotate_azm, mic_arch[:, 0],
+                                 mic_arch[:, 1])  # [n_mic, 3]
 
     return mic_pos, array_pos
 
@@ -530,15 +484,13 @@ def sample_a_config(simu_config):
     rt60_config = simu_config["rt60"]
     mic_dist_config = simu_config["mic_dist"]
     num_src = simu_config["num_src"]
-    room_dim = np.random.uniform(
-        np.array(room_config[0]), np.array(room_config[1])
-    )
+    room_dim = np.random.uniform(np.array(room_config[0]),
+                                 np.array(room_config[1]))
     rt60 = np.random.uniform(rt60_config[0], rt60_config[1])
     sr = simu_config["sr"]
 
-    if (
-        "array_pos" not in simu_config.keys()
-    ):  # mic_arch must be given in this case
+    if ("array_pos"
+            not in simu_config.keys()):  # mic_arch must be given in this case
         mic_arch = simu_config["mic_arch"]
         mic_pos, array_pos = sample_mic_array_pos(mic_arch, room_dim)
     else:
@@ -563,8 +515,7 @@ def single_channel(simu_config):
     mic_arch = {"n_mic": [1, 1], "spacing": None, "bounding_box": None}
     simu_config["mic_arch"] = mic_arch
     mic_pos, sr, rt60, room_dim, src_pos, array_pos = sample_a_config(
-        simu_config
-    )
+        simu_config)
 
     rir, rir_direct = FRAM_RIR(mic_pos, sr, rt60, room_dim, src_pos, array_pos)
     # with shape [1, n_src, rir_len]
@@ -577,8 +528,7 @@ def multi_channel_array(simu_config):
 
     simu_config["mic_arch"] = mic_arch
     mic_pos, sr, rt60, room_dim, src_pos, array_pos = sample_a_config(
-        simu_config
-    )
+        simu_config)
 
     rir, rir_direct = FRAM_RIR(mic_pos, sr, rt60, room_dim, src_pos)
     # with shape [n_mic, n_src, rir_len]
@@ -594,8 +544,7 @@ def multi_channel_adhoc(simu_config):
     }
     simu_config["mic_arch"] = mic_arch
     mic_pos, sr, rt60, room_dim, src_pos, array_pos = sample_a_config(
-        simu_config
-    )
+        simu_config)
 
     rir, rir_direct = FRAM_RIR(mic_pos, sr, rt60, room_dim, src_pos)
     # with shape [sample_n_mic, n_src, rir_len]
@@ -620,13 +569,12 @@ def multi_channel_src_orientation():
     rt60 = 0.6
     room_dim = [8, 8, 3]
     src_pos = np.array([[4, 4, 1.5]])  # middle of the room
-    mic_pos = np.array(
-        [[2, 2, 1.5], [2, 6, 1.5], [6, 2, 1.5], [6, 6, 1.5]]  # mic 1, 2
-    )  # mic 3, 4
+    mic_pos = np.array([[2, 2, 1.5], [2, 6, 1.5], [6, 2, 1.5],
+                        [6, 6, 1.5]]  # mic 1, 2
+                       )  # mic 3, 4
     src_pattern = "sub_cardioid"
-    src_orientation_rad = (
-        np.array([180, 90]) / 180.0 * np.pi
-    )  # facing *front* (negative x axis)
+    src_orientation_rad = (np.array([180, 90]) / 180.0 * np.pi
+                           )  # facing *front* (negative x axis)
 
     rir, rir_direct = FRAM_RIR(
         mic_pos,
@@ -660,22 +608,17 @@ def multi_channel_mic_orientation():
     rt60 = 0.6
     room_dim = [8, 8, 3]
     src_pos = np.array([[4, 4, 1.5]])  # middle of the room
-    mic_pos = np.array(
-        [[2, 2, 1.5], [2, 6, 1.5], [6, 2, 1.5], [6, 6, 1.5]]  # mic 1, 2
-    )  # mic 3, 4
+    mic_pos = np.array([[2, 2, 1.5], [2, 6, 1.5], [6, 2, 1.5],
+                        [6, 6, 1.5]]  # mic 1, 2
+                       )  # mic 3, 4
     mic_pattern = "sub_cardioid"
     mic_orientation_rad = (
-        np.array(
-            [
-                [180, 90],
-                [0, 90],  # mic 1 (negative x axis), 2 (positive x axis)
-                [180, 90],
-                [0, 90],
-            ]
-        )
-        / 180.0
-        * np.pi
-    )  # mic 3 (negative x axis), 4 (positive x axis)
+        np.array([
+            [180, 90],
+            [0, 90],  # mic 1 (negative x axis), 2 (positive x axis)
+            [180, 90],
+            [0, 90],
+        ]) / 180.0 * np.pi)  # mic 3 (negative x axis), 4 (positive x axis)
 
     rir, rir_direct = FRAM_RIR(
         mic_pos,

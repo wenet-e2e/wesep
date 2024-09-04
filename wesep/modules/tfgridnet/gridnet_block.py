@@ -24,6 +24,7 @@ from wesep.utils.utils import get_layer
 
 
 class GridNetBlock(nn.Module):
+
     def __getitem__(self, key):
         return getattr(self, key)
 
@@ -55,9 +56,10 @@ class GridNetBlock(nn.Module):
         if emb_ks == emb_hs:
             self.intra_linear = nn.Linear(hidden_channels * 2, in_channels)
         else:
-            self.intra_linear = nn.ConvTranspose1d(
-                hidden_channels * 2, emb_dim, emb_ks, stride=emb_hs
-            )
+            self.intra_linear = nn.ConvTranspose1d(hidden_channels * 2,
+                                                   emb_dim,
+                                                   emb_ks,
+                                                   stride=emb_hs)
 
         self.inter_norm = nn.LayerNorm(emb_dim, eps=eps)
         self.inter_rnn = nn.LSTM(
@@ -70,13 +72,13 @@ class GridNetBlock(nn.Module):
         if emb_ks == emb_hs:
             self.inter_linear = nn.Linear(hidden_channels * 2, in_channels)
         else:
-            self.inter_linear = nn.ConvTranspose1d(
-                hidden_channels * 2, emb_dim, emb_ks, stride=emb_hs
-            )
+            self.inter_linear = nn.ConvTranspose1d(hidden_channels * 2,
+                                                   emb_dim,
+                                                   emb_ks,
+                                                   stride=emb_hs)
 
-        E = math.ceil(
-            approx_qk_dim * 1.0 / n_freqs
-        )  # approx_qk_dim is only approximate
+        E = math.ceil(approx_qk_dim * 1.0 /
+                      n_freqs)  # approx_qk_dim is only approximate
         assert emb_dim % n_head == 0
 
         self.add_module("attn_conv_Q", nn.Conv2d(emb_dim, n_head * E, 1))
@@ -91,14 +93,12 @@ class GridNetBlock(nn.Module):
             AllHeadPReLULayerNormalization4DCF((n_head, E, n_freqs), eps=eps),
         )
 
-        self.add_module(
-            "attn_conv_V", nn.Conv2d(emb_dim, n_head * emb_dim // n_head, 1)
-        )
+        self.add_module("attn_conv_V",
+                        nn.Conv2d(emb_dim, n_head * emb_dim // n_head, 1))
         self.add_module(
             "attn_norm_V",
             AllHeadPReLULayerNormalization4DCF(
-                (n_head, emb_dim // n_head, n_freqs), eps=eps
-            ),
+                (n_head, emb_dim // n_head, n_freqs), eps=eps),
         )
 
         self.add_module(
@@ -125,38 +125,32 @@ class GridNetBlock(nn.Module):
         B, C, old_T, old_Q = x.shape
 
         olp = self.emb_ks - self.emb_hs
-        T = (
-            math.ceil((old_T + 2 * olp - self.emb_ks) / self.emb_hs)
-            * self.emb_hs
-            + self.emb_ks
-        )
-        Q = (
-            math.ceil((old_Q + 2 * olp - self.emb_ks) / self.emb_hs)
-            * self.emb_hs
-            + self.emb_ks
-        )
+        T = (math.ceil(
+            (old_T + 2 * olp - self.emb_ks) / self.emb_hs) * self.emb_hs +
+             self.emb_ks)
+        Q = (math.ceil(
+            (old_Q + 2 * olp - self.emb_ks) / self.emb_hs) * self.emb_hs +
+             self.emb_ks)
 
         x = x.permute(0, 2, 3, 1)  # [B, old_T, old_Q, C]
         x = F.pad(
-            x, (0, 0, olp, Q - old_Q - olp, olp, T - old_T - olp)
-        )  # [B, T, Q, C]
+            x,
+            (0, 0, olp, Q - old_Q - olp, olp, T - old_T - olp))  # [B, T, Q, C]
 
         # intra RNN
         input_ = x
         intra_rnn = self.intra_norm(input_)  # [B, T, Q, C]
         if self.emb_ks == self.emb_hs:
-            intra_rnn = intra_rnn.view(
-                [B * T, -1, self.emb_ks * C]
-            )  # [BT, Q//I, I*C]
+            intra_rnn = intra_rnn.view([B * T, -1,
+                                        self.emb_ks * C])  # [BT, Q//I, I*C]
             intra_rnn, _ = self.intra_rnn(intra_rnn)  # [BT, Q//I, H]
             intra_rnn = self.intra_linear(intra_rnn)  # [BT, Q//I, I*C]
             intra_rnn = intra_rnn.view([B, T, Q, C])
         else:
             intra_rnn = intra_rnn.view([B * T, Q, C])  # [BT, Q, C]
             intra_rnn = intra_rnn.transpose(1, 2)  # [BT, C, Q]
-            intra_rnn = F.unfold(
-                intra_rnn[..., None], (self.emb_ks, 1), stride=(self.emb_hs, 1)
-            )  # [BT, C*I, -1]
+            intra_rnn = F.unfold(intra_rnn[..., None], (self.emb_ks, 1),
+                                 stride=(self.emb_hs, 1))  # [BT, C*I, -1]
             intra_rnn = intra_rnn.transpose(1, 2)  # [BT, -1, C*I]
 
             intra_rnn, _ = self.intra_rnn(intra_rnn)  # [BT, -1, H]
@@ -173,18 +167,16 @@ class GridNetBlock(nn.Module):
         input_ = intra_rnn
         inter_rnn = self.inter_norm(input_)  # [B, Q, T, C]
         if self.emb_ks == self.emb_hs:
-            inter_rnn = inter_rnn.view(
-                [B * Q, -1, self.emb_ks * C]
-            )  # [BQ, T//I, I*C]
+            inter_rnn = inter_rnn.view([B * Q, -1,
+                                        self.emb_ks * C])  # [BQ, T//I, I*C]
             inter_rnn, _ = self.inter_rnn(inter_rnn)  # [BQ, T//I, H]
             inter_rnn = self.inter_linear(inter_rnn)  # [BQ, T//I, I*C]
             inter_rnn = inter_rnn.view([B, Q, T, C])
         else:
             inter_rnn = inter_rnn.view(B * Q, T, C)  # [BQ, T, C]
             inter_rnn = inter_rnn.transpose(1, 2)  # [BQ, C, T]
-            inter_rnn = F.unfold(
-                inter_rnn[..., None], (self.emb_ks, 1), stride=(self.emb_hs, 1)
-            )  # [BQ, C*I, -1]
+            inter_rnn = F.unfold(inter_rnn[..., None], (self.emb_ks, 1),
+                                 stride=(self.emb_hs, 1))  # [BQ, C*I, -1]
             inter_rnn = inter_rnn.transpose(1, 2)  # [BQ, -1, C*I]
 
             inter_rnn, _ = self.inter_rnn(inter_rnn)  # [BQ, -1, H]
@@ -197,18 +189,15 @@ class GridNetBlock(nn.Module):
 
         inter_rnn = inter_rnn.permute(0, 3, 2, 1)  # [B, C, T, Q]
 
-        inter_rnn = inter_rnn[..., olp : olp + old_T, olp : olp + old_Q]
+        inter_rnn = inter_rnn[..., olp:olp + old_T, olp:olp + old_Q]
         batch = inter_rnn
 
         Q = self["attn_norm_Q"](
-            self["attn_conv_Q"](batch)
-        )  # [B, n_head, C, T, Q]
+            self["attn_conv_Q"](batch))  # [B, n_head, C, T, Q]
         K = self["attn_norm_K"](
-            self["attn_conv_K"](batch)
-        )  # [B, n_head, C, T, Q]
+            self["attn_conv_K"](batch))  # [B, n_head, C, T, Q]
         V = self["attn_norm_V"](
-            self["attn_conv_V"](batch)
-        )  # [B, n_head, C, T, Q]
+            self["attn_conv_V"](batch))  # [B, n_head, C, T, Q]
         Q = Q.view(-1, *Q.shape[2:])  # [B*n_head, C, T, Q]
         K = K.view(-1, *K.shape[2:])  # [B*n_head, C, T, Q]
         V = V.view(-1, *V.shape[2:])  # [B*n_head, C, T, Q]
@@ -232,9 +221,8 @@ class GridNetBlock(nn.Module):
         V = V.transpose(1, 2)  # [B', C, T, Q]
         emb_dim = V.shape[1]
 
-        batch = V.contiguous().view(
-            [B, self.n_head * emb_dim, old_T, old_Q]
-        )  # [B, C, T, Q])
+        batch = V.contiguous().view([B, self.n_head * emb_dim, old_T,
+                                     old_Q])  # [B, C, T, Q])
         batch = self["attn_concat_proj"](batch)  # [B, C, T, Q])
 
         out = batch + inter_rnn
@@ -242,6 +230,7 @@ class GridNetBlock(nn.Module):
 
 
 class LayerNormalization4DCF(nn.Module):
+
     def __init__(self, input_dimension, eps=1e-5):
         super().__init__()
         assert len(input_dimension) == 2
@@ -257,17 +246,17 @@ class LayerNormalization4DCF(nn.Module):
             stat_dim = (1, 3)
         else:
             raise ValueError(
-                "Expect x to have 4 dimensions, but got {}".format(x.ndim)
-            )
+                "Expect x to have 4 dimensions, but got {}".format(x.ndim))
         mu_ = x.mean(dim=stat_dim, keepdim=True)  # [B,1,T,1]
         std_ = torch.sqrt(
-            x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps
-        )  # [B,1,T,F]
+            x.var(dim=stat_dim, unbiased=False, keepdim=True) +
+            self.eps)  # [B,1,T,F]
         x_hat = ((x - mu_) / std_) * self.gamma + self.beta
         return x_hat
 
 
 class AllHeadPReLULayerNormalization4DCF(nn.Module):
+
     def __init__(self, input_dimension, eps=1e-5):
         super().__init__()
         assert len(input_dimension) == 3
@@ -291,7 +280,7 @@ class AllHeadPReLULayerNormalization4DCF(nn.Module):
         stat_dim = (2, 4)
         mu_ = x.mean(dim=stat_dim, keepdim=True)  # [B,H,1,T,1]
         std_ = torch.sqrt(
-            x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps
-        )  # [B,H,1,T,1]
+            x.var(dim=stat_dim, unbiased=False, keepdim=True) +
+            self.eps)  # [B,H,1,T,1]
         x = ((x - mu_) / std_) * self.gamma + self.beta  # [B,H,E,T,F]
         return x

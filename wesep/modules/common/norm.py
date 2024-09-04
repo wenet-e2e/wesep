@@ -34,18 +34,15 @@ class GlobalChannelLayerNorm(nn.Module):
         # cln: mean,var N x 1 x L
         # gln: mean,var N x 1 x 1
         if x.dim() != 3:
-            raise RuntimeError(
-                "{} accept 3D tensor as input".format(self.__name__)
-            )
+            raise RuntimeError("{} accept 3D tensor as input".format(
+                self.__name__))
 
         mean = torch.mean(x, (1, 2), keepdim=True)
-        var = torch.mean((x - mean) ** 2, (1, 2), keepdim=True)
+        var = torch.mean((x - mean)**2, (1, 2), keepdim=True)
         # N x C x L
         if self.elementwise_affine:
-            x = (
-                self.weight * (x - mean) / torch.sqrt(var + self.eps)
-                + self.bias
-            )
+            x = (self.weight * (x - mean) / torch.sqrt(var + self.eps) +
+                 self.bias)
         else:
             x = (x - mean) / torch.sqrt(var + self.eps)
         return x
@@ -89,9 +86,11 @@ class FiLM(nn.Module):
     https://github.com/HuangZiliAndy/fairseq/blob/multispk/fairseq/models/wavlm/WavLM.py#L1160
     """
 
-    def __init__(
-        self, feat_size, embed_size, num_film_layers=1, layer_norm=False
-    ):
+    def __init__(self,
+                 feat_size,
+                 embed_size,
+                 num_film_layers=1,
+                 layer_norm=False):
         super(FiLM, self).__init__()
         self.feat_size = feat_size
         self.embed_size = embed_size
@@ -145,12 +144,14 @@ class ConditionalLayerNorm(nn.Module):
     https://github.com/HuangZiliAndy/fairseq/blob/multispk/fairseq/models/wavlm/WavLM.py#L1160
     """
 
-    def __init__(
-        self, normalized_shape, embed_dim, modulate_bias=False, eps=1e-5
-    ):
+    def __init__(self,
+                 normalized_shape,
+                 embed_dim,
+                 modulate_bias=False,
+                 eps=1e-5):
         super(ConditionalLayerNorm, self).__init__()
         if isinstance(normalized_shape, numbers.Integral):
-            normalized_shape = (normalized_shape,)
+            normalized_shape = (normalized_shape, )
         self.normalized_shape = tuple(normalized_shape)
 
         self.embed_dim = embed_dim
@@ -176,18 +177,15 @@ class ConditionalLayerNorm(nn.Module):
         mean = torch.mean(input, -1, keepdim=True)
         var = torch.var(input, -1, unbiased=False, keepdim=True)
         weight = self.ln_weight_modulation(
-            embed, self.weight.expand(embed.size(0), -1)
-        )
+            embed, self.weight.expand(embed.size(0), -1))
         if self.ln_bias_modulation is None:
             bias = self.bias
         else:
-            bias = self.ln_bias_modulation(
-                embed, self.bias.expand(embed.size(0), -1)
-            )
+            bias = self.ln_bias_modulation(embed,
+                                           self.bias.expand(embed.size(0), -1))
         res = (input - mean) / torch.sqrt(var + self.eps) * weight + bias
         return res
 
     def extra_repr(self):
         return "{normalized_shape}, {embed_dim}, modulate_bias={modulate_bias}, eps={eps}".format(
-            **self.__dict__
-        )
+            **self.__dict__)

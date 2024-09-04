@@ -25,12 +25,13 @@ import torch
 def get_args():
     parser = argparse.ArgumentParser(description="average model")
     parser.add_argument("--dst_model", required=True, help="averaged model")
-    parser.add_argument(
-        "--src_path", required=True, help="src model path for average"
-    )
-    parser.add_argument(
-        "--num", default=5, type=int, help="nums for averaged model"
-    )
+    parser.add_argument("--src_path",
+                        required=True,
+                        help="src model path for average")
+    parser.add_argument("--num",
+                        default=5,
+                        type=int,
+                        help="nums for averaged model")
     parser.add_argument(
         "--min_epoch",
         default=0,
@@ -63,14 +64,13 @@ def get_args():
 def main():
     args = get_args()
     if args.mode == "final":
-        path_list = glob.glob(
-            "{}/*[!avg][!final][!latest].pt".format(args.src_path)
-        )
+        path_list = glob.glob("{}/*[!avg][!final][!latest].pt".format(
+            args.src_path))
         path_list = sorted(
             path_list,
             key=lambda p: int(re.findall(r"(?<=checkpoint_)\d*(?=.pt)", p)[0]),
         )
-        path_list = path_list[-args.num :]
+        path_list = path_list[-args.num:]
     else:
         epoch_indexes = [x for x in args.epochs.split(",")]
         path_list = [

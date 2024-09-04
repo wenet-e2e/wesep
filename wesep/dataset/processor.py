@@ -17,7 +17,6 @@ from scipy import signal
 from wesep.dataset.FRAM_RIR import single_channel as RIR_sim
 from wesep.dataset.lmdb_data import LmdbData
 
-
 AUDIO_FORMAT_SETS = {"flac", "mp3", "m4a", "ogg", "opus", "wav", "wma"}
 
 # set the simulation configuration
@@ -85,7 +84,7 @@ def tar_file_and_group(data):
             name = tarinfo.name
             pos = name.rfind(".")
             assert pos > 0
-            prefix, postfix = name[:pos], name[pos + 1 :]
+            prefix, postfix = name[:pos], name[pos + 1:]
             if prev_prefix is not None and prev_prefix not in prefix:
                 example["key"] = prev_prefix
                 if valid:
@@ -98,8 +97,7 @@ def tar_file_and_group(data):
                 try:
                     if "spk" in postfix:
                         example[postfix] = (
-                            file_obj.read().decode("utf8").strip()
-                        )
+                            file_obj.read().decode("utf8").strip())
                         num_speakers += 1
                     elif postfix in AUDIO_FORMAT_SETS:
                         waveform, sample_rate = torchaudio.load(file_obj)
@@ -139,9 +137,8 @@ def tar_file_and_group_single_spk(data):
     """
     for sample in data:
         assert "stream" in sample
-        stream = tarfile.open(
-            fileobj=sample["stream"], mode="r|*"
-        )  # Only support pytorch version <2.0
+        stream = tarfile.open(fileobj=sample["stream"],
+                              mode="r|*")  # Only support pytorch version <2.0
         prev_prefix = None
         example = {}
         valid = True
@@ -149,7 +146,7 @@ def tar_file_and_group_single_spk(data):
             name = tarinfo.name
             pos = name.rfind(".")
             assert pos > 0
-            prefix, postfix = name[:pos], name[pos + 1 :]
+            prefix, postfix = name[:pos], name[pos + 1:]
             if prev_prefix is not None and prefix != prev_prefix:
                 example["key"] = prev_prefix
                 if valid:
@@ -160,8 +157,7 @@ def tar_file_and_group_single_spk(data):
                 try:
                     if postfix in ["spk"]:
                         example[postfix] = (
-                            file_obj.read().decode("utf8").strip()
-                        )
+                            file_obj.read().decode("utf8").strip())
                     elif postfix in AUDIO_FORMAT_SETS:
                         waveform, sample_rate = torchaudio.load(file_obj)
                         example["wav"] = waveform
@@ -202,9 +198,10 @@ def parse_raw_single_spk(data):
         spk = obj["spk"]
         try:
             waveform, sample_rate = torchaudio.load(wav_file)
-            example = dict(
-                key=key, spk=spk, wav=waveform, sample_rate=sample_rate
-            )
+            example = dict(key=key,
+                           spk=spk,
+                           wav=waveform,
+                           sample_rate=sample_rate)
             yield example
         except Exception as ex:
             logging.warning("Failed to read {}".format(wav_file))
@@ -242,10 +239,10 @@ def mix_speakers(data, num_speaker=2, shuffle_size=1000):
                         interference = random.choice(buf)
                     key = key + "_" + interference["key"]
                     interference_idx += 1
-                    example["wav_spk" + str(interference_idx)] = interference[
-                        "wav"
-                    ]
-                    example["spk" + str(interference_idx)] = interference["spk"]
+                    example["wav_spk" +
+                            str(interference_idx)] = interference["wav"]
+                    example["spk" +
+                            str(interference_idx)] = interference["spk"]
                 example["key"] = key
                 example["num_speaker"] = num_speaker
                 yield example
@@ -295,7 +292,7 @@ def snr_mixer(data, use_random_snr: bool = False):
             suffix = ""
         num_speaker = sample["num_speaker"]
         wavs_to_mix = [sample["wav_spk1" + suffix]]
-        target_energy = torch.sum(wavs_to_mix[0] ** 2, dim=-1, keepdim=True)
+        target_energy = torch.sum(wavs_to_mix[0]**2, dim=-1, keepdim=True)
         for i in range(1, num_speaker):
             interference = sample[f"wav_spk{i + 1}" + suffix]
             if use_random_snr:
@@ -303,9 +300,7 @@ def snr_mixer(data, use_random_snr: bool = False):
             else:
                 snr = 0
             energy = torch.sum(interference**2, dim=-1, keepdim=True)
-            interference *= torch.sqrt(target_energy / energy) * 10 ** (
-                snr / 20
-            )
+            interference *= torch.sqrt(target_energy / energy) * 10**(snr / 20)
             wavs_to_mix.append(interference)
         wavs_to_mix = torch.stack(wavs_to_mix)
         sample["wav_mix"] = torch.sum(wavs_to_mix, 0)
@@ -388,8 +383,8 @@ def resample(data, resample_rate=16000):
                 if "wav" in key:
                     waveform = sample[key]
                     sample[key] = torchaudio.transforms.Resample(
-                        orig_freq=sample_rate, new_freq=resample_rate
-                    )(waveform)
+                        orig_freq=sample_rate,
+                        new_freq=resample_rate)(waveform)
         yield sample
 
 
@@ -422,13 +417,11 @@ def sample_fix_spk_embedding(data, spk2embed_dict, spk1_embed, spk2_embed):
         for key in all_keys:
             if key.startswith("spk"):
                 if key == "spk1":
-                    sample["embed_" + key] = spk2embed_dict[
-                        spk1_embed[sample["key"]]
-                    ]
+                    sample["embed_" +
+                           key] = spk2embed_dict[spk1_embed[sample["key"]]]
                 else:
-                    sample["embed_" + key] = spk2embed_dict[
-                        spk2_embed[sample["key"]]
-                    ]
+                    sample["embed_" +
+                           key] = spk2embed_dict[spk2_embed[sample["key"]]]
         yield sample
 
 
@@ -447,17 +440,18 @@ def sample_enrollment(data, spk_embeds, dict_spk):
         for key in all_keys:
             if key.startswith("spk"):
                 enrollment, _ = sf.read(
-                    random.choice(spk_embeds[sample[key]])[1]
-                )
+                    random.choice(spk_embeds[sample[key]])[1])
                 sample["embed_" + key] = np.expand_dims(enrollment, axis=0)
                 if dict_spk:
                     sample[key + "_label"] = dict_spk[sample[key]]
         yield sample
 
 
-def sample_fix_spk_enrollment(
-    data, spk2embed_dict, spk1_embed, spk2_embed, dict_spk=None
-):
+def sample_fix_spk_enrollment(data,
+                              spk2embed_dict,
+                              spk1_embed,
+                              spk2_embed,
+                              dict_spk=None):
     """sample reference speaker embeddings for the target speaker
     Args:
         data: Iterable[{key, wav, label, sample_rate}]
@@ -473,21 +467,21 @@ def sample_fix_spk_enrollment(
             if key.startswith("spk"):
                 if key == "spk1":
                     enrollment, _ = sf.read(
-                        spk2embed_dict[spk1_embed[sample["key"]]]
-                    )
+                        spk2embed_dict[spk1_embed[sample["key"]]])
                 else:
                     enrollment, _ = sf.read(
-                        spk2embed_dict[spk2_embed[sample["key"]]]
-                    )
+                        spk2embed_dict[spk2_embed[sample["key"]]])
                 sample["embed_" + key] = np.expand_dims(enrollment, axis=0)
                 if dict_spk:
                     sample[key + "_label"] = dict_spk[sample[key]]
         yield sample
 
 
-def compute_fbank(
-    data, num_mel_bins=80, frame_length=25, frame_shift=10, dither=1.0
-):
+def compute_fbank(data,
+                  num_mel_bins=80,
+                  frame_length=25,
+                  frame_shift=10,
+                  dither=1.0):
     """Extract fbank
 
     Args:
@@ -561,10 +555,10 @@ def get_random_chunk(data_list, chunk_len):
     if data_len >= chunk_len:
         chunk_start = random.randint(0, data_len - chunk_len)
         for i in range(len(data_list)):
-            temp_data = data_list[i][chunk_start : chunk_start + chunk_len]
+            temp_data = data_list[i][chunk_start:chunk_start + chunk_len]
             while torch.equal(temp_data, torch.zeros_like(temp_data)):
                 chunk_start = random.randint(0, data_len - chunk_len)
-                temp_data = data_list[i][chunk_start : chunk_start + chunk_len]
+                temp_data = data_list[i][chunk_start:chunk_start + chunk_len]
             data_list[i] = temp_data
             # re-clone the data to avoid memory leakage
             if type(data_list[i]) == torch.Tensor:
@@ -684,8 +678,7 @@ def add_noise(
             power = (speech**2).mean()
             noise_key, noise_data = noise_source.random_one()
             if noise_key.startswith(
-                "speech"
-            ):  # using interference speech as additive noise
+                    "speech"):  # using interference speech as additive noise
                 snr_range = [10, 30]
             else:
                 snr_range = [noise_db_low, noise_db_high]
@@ -715,8 +708,7 @@ def add_noise(
                     noise = f.read(nsamples_, dtype=np.float64, always_2d=True)
                     if len(noise) != nsamples_:
                         raise RuntimeError(
-                            f"Something wrong: {noise_lmdb_file}"
-                        )
+                            f"Something wrong: {noise_lmdb_file}")
 
             if single_channel:
                 num_ch = noise.shape[1]
@@ -728,9 +720,10 @@ def add_noise(
                 logging.warning(
                     f"Resampling noise to match the sampling rate ({fs} -> {tgt_fs} Hz)"
                 )
-                noise = librosa.resample(
-                    noise, orig_sr=fs, target_sr=tgt_fs, res_type="kaiser_fast"
-                )
+                noise = librosa.resample(noise,
+                                         orig_sr=fs,
+                                         target_sr=tgt_fs,
+                                         res_type="kaiser_fast")
                 if noise.shape[1] < nsamples:
                     noise = np.pad(
                         noise,
@@ -740,11 +733,8 @@ def add_noise(
                 else:
                     noise = noise[:, :nsamples]
             noise_power = (noise**2).mean()
-            scale = (
-                10 ** (-noise_db / 20)
-                * np.sqrt(power)
-                / np.sqrt(max(noise_power, 1e-10))
-            )
+            scale = (10**(-noise_db / 20) * np.sqrt(power) /
+                     np.sqrt(max(noise_power, 1e-10)))
             scaled_noise = scale * noise
             speech = speech + scaled_noise
             sample["wav_mix"] = torch.from_numpy(speech)
@@ -778,10 +768,10 @@ def add_reverb(data, reverb_prob=0):
             if reverb_prob > random.random():
                 # [1, audio_len], currently only support single-channel audio
                 audio = sample[f"wav_spk{i + 1}"].numpy()
-                rir = rirs[i : i + 1, :]  # [1, nsamples]
-                rir_audio = signal.convolve(audio, rir, mode="full")[
-                    :, : audio.shape[1]
-                ]  # [1, audio_len]
+                rir = rirs[i:i + 1, :]  # [1, nsamples]
+                rir_audio = signal.convolve(
+                    audio, rir,
+                    mode="full")[:, :audio.shape[1]]  # [1, audio_len]
 
                 max_scale = np.max(np.abs(rir_audio))
                 out_audio = rir_audio / max_scale * 0.9
@@ -827,7 +817,7 @@ def add_noise_on_enroll(
                     power = (speech**2).mean()
                     noise_key, noise_data = noise_source.random_one()
                     if noise_key.startswith(
-                        "speech"
+                            "speech"
                     ):  # using interference speech as additive noise
                         snr_range = [10, 30]
                     else:
@@ -859,13 +849,12 @@ def add_noise_on_enroll(
                             offset = np.random.randint(0, f.frames - nsamples_)
                             f.seek(offset)
                             # noise: (Time, Nmic)
-                            noise = f.read(
-                                nsamples_, dtype=np.float64, always_2d=True
-                            )
+                            noise = f.read(nsamples_,
+                                           dtype=np.float64,
+                                           always_2d=True)
                             if len(noise) != nsamples_:
                                 raise RuntimeError(
-                                    f"Something wrong: {noise_lmdb_file}"
-                                )
+                                    f"Something wrong: {noise_lmdb_file}")
 
                     if single_channel:
                         num_ch = noise.shape[1]
@@ -892,11 +881,8 @@ def add_noise_on_enroll(
                         else:
                             noise = noise[:, :nsamples]
                     noise_power = (noise**2).mean()
-                    scale = (
-                        10 ** (-noise_db / 20)
-                        * np.sqrt(power)
-                        / np.sqrt(max(noise_power, 1e-10))
-                    )
+                    scale = (10**(-noise_db / 20) * np.sqrt(power) /
+                             np.sqrt(max(noise_power, 1e-10)))
                     scaled_noise = scale * noise
                     speech = speech + scaled_noise
                     sample["embed_" + key] = speech
@@ -925,9 +911,9 @@ def add_reverb_on_enroll(data, reverb_enroll_prob=0):
                 audio = sample[f"embed_spk{i+1}"]
                 # rir = rirs[i : i + 1, :]  # [1, nsamples]
                 rir = rirs
-                rir_audio = signal.convolve(audio, rir, mode="full")[
-                    :, : audio.shape[1]
-                ]  # [1, audio_len]
+                rir_audio = signal.convolve(
+                    audio, rir,
+                    mode="full")[:, :audio.shape[1]]  # [1, audio_len]
 
                 max_scale = np.max(np.abs(rir_audio))
                 out_audio = rir_audio / max_scale * 0.9

@@ -62,10 +62,8 @@ class DatadirWriter:
             for child in self.chilidren.values():
                 child.close()
                 if prev_child is not None and prev_child.keys != child.keys:
-                    warnings.warn(
-                        f"Ids are mismatching between "
-                        f"{prev_child.path} and {child.path}"
-                    )
+                    warnings.warn(f"Ids are mismatching between "
+                                  f"{prev_child.path} and {child.path}")
                 prev_child = child
 
         elif self.fd is not None:

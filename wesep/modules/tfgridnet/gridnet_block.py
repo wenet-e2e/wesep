@@ -125,12 +125,10 @@ class GridNetBlock(nn.Module):
         B, C, old_T, old_Q = x.shape
 
         olp = self.emb_ks - self.emb_hs
-        T = (math.ceil(
-            (old_T + 2 * olp - self.emb_ks) / self.emb_hs) * self.emb_hs +
-             self.emb_ks)
-        Q = (math.ceil(
-            (old_Q + 2 * olp - self.emb_ks) / self.emb_hs) * self.emb_hs +
-             self.emb_ks)
+        T = math.ceil((old_T + 2 * olp - self.emb_ks) /
+                      self.emb_hs) * self.emb_hs + self.emb_ks
+        Q = math.ceil((old_Q + 2 * olp - self.emb_ks) /
+                      self.emb_hs) * self.emb_hs + self.emb_ks
 
         x = x.permute(0, 2, 3, 1)  # [B, old_T, old_Q, C]
         x = F.pad(

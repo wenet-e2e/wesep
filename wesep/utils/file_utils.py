@@ -203,7 +203,7 @@ def soundfile_read(
         if prev_wav is not None:
             if prev_rate != rate:
                 raise RuntimeError(
-                    f"'{prev_wav}' and '{wav}' have mismatched sampling rate: "
+                    f"{prev_wav} and {wav} have mismatched sampling rate: "
                     f"{prev_rate} != {rate}")
 
             dim1 = arrays[0].shape[1 - concat_axis]

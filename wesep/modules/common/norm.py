@@ -83,7 +83,7 @@ def select_norm(norm, dim):
 
 class FiLM(nn.Module):
     """Feature-wise Linear Modulation (FiLM) layer
-    https://github.com/HuangZiliAndy/fairseq/blob/multispk/fairseq/models/wavlm/WavLM.py#L1160
+    https://github.com/HuangZiliAndy/fairseq/blob/multispk/fairseq/models/wavlm/WavLM.py#L1160  # noqa
     """
 
     def __init__(self,

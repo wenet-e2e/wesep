@@ -59,11 +59,11 @@ def infer(config="confs/conf.yaml", **kwargs):
         if not os.path.exists(save_audio_dir):
             try:
                 os.makedirs(save_audio_dir)
-                print(f"Directory '{save_audio_dir}' created successfully.")
+                print(f"Directory {save_audio_dir} created successfully.")
             except OSError as e:
-                print(f"Error creating directory '{save_audio_dir}': {e}")
+                print(f"Error creating directory {save_audio_dir}: {e}")
         else:
-            print(f"Directory '{save_audio_dir}' already exists.")
+            print(f"Directory {save_audio_dir} already exists.")
     else:
         print("Do NOT save the results in wav.")
 

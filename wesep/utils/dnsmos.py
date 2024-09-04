@@ -77,7 +77,7 @@ class DNSMOS_local:
                 from onnx2torch import convert
             except ModuleNotFoundError:
                 raise RuntimeError(
-                    "Please install onnx2torch manually and retry!")
+                    "Please install onnx2torch manually and retry!") from None
 
             if primary_model_path is not None:
                 self.primary_model = convert(primary_model_path).eval()
@@ -99,7 +99,7 @@ class DNSMOS_local:
                 import onnxruntime as ort
             except ModuleNotFoundError:
                 raise RuntimeError(
-                    "Please install onnxruntime manually and retry!")
+                    "Please install onnxruntime manually and retry!") from None
 
             prvd = ("CUDAExecutionProvider"
                     if use_gpu else "CPUExecutionProvider")

@@ -166,7 +166,7 @@ def get_commandline_args():
     argv = [(arg.replace("'", "'\\''") if all(
         char not in arg
         for char in extra_chars) else "'" + arg.replace("'", "'\\''") + "'")
-            for arg in sys.argv]
+        for arg in sys.argv]
 
     return sys.executable + " " + " ".join(argv)
 
@@ -235,7 +235,7 @@ def get_layer(l_name, library=torch.nn):
 
     """
 
-    all_torch_layers = [x for x in dir(torch.nn)]
+    all_torch_layers = list(dir(torch.nn))
     match = [x for x in all_torch_layers if l_name.lower() == x.lower()]
     if len(match) == 0:
         close_matches = difflib.get_close_matches(

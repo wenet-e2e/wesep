@@ -72,7 +72,7 @@ def main():
         )
         path_list = path_list[-args.num:]
     else:
-        epoch_indexes = [x for x in args.epochs.split(",")]
+        epoch_indexes = list(args.epochs.split(","))
         path_list = [
             os.path.join(args.src_path, "checkpoint_" + x + ".pt")
             for x in epoch_indexes

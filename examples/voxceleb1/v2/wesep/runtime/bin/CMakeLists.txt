@@ -1,0 +1,2 @@
+add_executable(separate_main separate_main.cc)
+target_link_libraries(separate_main PUBLIC frontend separate)

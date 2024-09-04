@@ -1,0 +1,111 @@
+dataloader_args:
+  batch_size: 8
+  drop_last: true
+  num_workers: 6
+  pin_memory: false
+  prefetch_factor: 6
+
+dataset_args:
+  resample_rate: 16000
+  sample_num_per_epoch: 0
+  shuffle: true
+  shuffle_args:
+    shuffle_size: 2500
+  filter_len: true
+  filter_len_args:
+      min_num_seconds: 1.0
+      max_num_seconds: 100.0
+  chunk_len: 48000
+  online_mix: true
+  num_speakers: 2
+  use_random_snr: true
+  speaker_feat: &speaker_feat True
+  fbank_args:
+    num_mel_bins: 80
+    frame_shift: 10
+    frame_length: 25
+    dither: 1.0
+
+  noise_lmdb_file:  './data/musan/lmdb'
+  noise_prob: 0
+  reverb_prob: 0
+
+enable_amp: false
+exp_dir: exp/BSRNN
+gpus: '0,1'
+log_batch_interval: 100
+
+loss: SISDR
+loss_args: { }
+
+model:
+  tse_model: BSRNN
+model_args:
+  tse_model:
+    sr: 16000
+    win: 512
+    stride: 128
+    feature_dim: 128
+    num_repeat: 6
+    spk_fuse_type: 'multiply'
+    use_spk_transform: False
+    multi_fuse: False        # Fuse the speaker embedding multiple times.
+    joint_training: True
+    ####### ResNet    The pretrained speaker encoders are available from: https://github.com/wenet-e2e/wespeaker/blob/master/docs/pretrained.md
+    spk_model: ResNet34 # ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
+    spk_model_init: False #./wespeaker_models/voxceleb_resnet34/avg_model.pt
+    spk_args:
+      feat_dim: 80
+      embed_dim: &embed_dim 256
+      pooling_func: "TSTP" # TSTP, ASTP, MQMHASTP
+      two_emb_layer: False
+    ####### Ecapa_TDNN
+    # spk_model: ECAPA_TDNN_GLOB_c512
+    # spk_model_init: False #./wespeaker_models/voxceleb_ECAPA512/avg_model.pt
+    # spk_args:
+    #   embed_dim: &embed_dim 192
+    #   feat_dim: 80
+    #   pooling_func: ASTP
+    ####### CAMPPlus
+    # spk_model: CAMPPlus
+    # spk_model_init: False
+    # spk_args:
+    #   feat_dim: 80
+    #   embed_dim: &embed_dim 192
+    #   pooling_func: "TSTP" # TSTP, ASTP, MQMHASTP
+    #################################################################
+    spk_emb_dim: *embed_dim
+    spk_model_freeze: False    # Related to train TSE model with pre-trained speaker encoder, Control if freeze the weights in speaker encoder
+    spk_feat: *speaker_feat   #if do NOT wanna process the feat when processing data, set &speaker_feat to False, then the feat_type will be used
+    feat_type: "consistent"
+    multi_task: False
+    spksInTrain: 251    #wsj0-2mix: 101; Libri2mix-100: 251; Libri2mix-360:921
+
+# find_unused_parameters: True
+
+model_init:
+  tse_model: null
+  discriminator: null
+num_avg: 2
+num_epochs: 150
+
+optimizer:
+  tse_model: Adam
+optimizer_args:
+  tse_model:
+    lr: 0.001
+    weight_decay: 0.0001
+
+clip_grad: 5.0
+save_epoch_interval: 1
+
+scheduler:
+  tse_model: ExponentialDecrease
+scheduler_args:
+  tse_model:
+    final_lr: 2.5e-05
+    initial_lr: 0.001
+    warm_from_zero: false
+    warm_up_epoch: 0
+
+seed: 42

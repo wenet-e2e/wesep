@@ -1,0 +1,82 @@
+dataloader_args:
+  batch_size: 8       #A800: 8
+  drop_last: true
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 6
+
+dataset_args:
+  resample_rate: 16000
+  sample_num_per_epoch: 0
+  shuffle: true
+  shuffle_args:
+    shuffle_size: 2500
+  chunk_len: 48000
+  noise_lmdb_file: './data/musan/lmdb'
+  noise_prob: 0 # prob to add noise aug per sample
+  specaug_enroll_prob: 0 # prob to apply SpecAug on fbank of enrollment speech 
+  reverb_enroll_prob: 0 # prob to add reverb aug on enrollment speech 
+  noise_enroll_prob: 0 # prob to add noise aug on enrollment speech 
+
+enable_amp: false
+exp_dir: exp/SpExplus/
+gpus: ['0']
+log_batch_interval: 100
+
+# joint_training: True
+loss: [SISDR, CE]               ###SI_SNR, SDR, sisnr, CE
+loss_args:
+  loss_posi: [[0,1,2],[3]]
+  loss_weight: [[0.8,0.1,0.1],[0.5]]
+
+
+model:
+  tse_model: ConvTasNet
+model_args:
+  tse_model: 
+    B: 256
+    H: 512
+    L: 20
+    N: 256
+    P: 3
+    R: 4
+    X: 8
+    spk_emb_dim: 256
+    activate: relu
+    causal: false
+    norm: gLN
+    skip_con: False
+    spk_fuse_type: concatConv # "concat", "additive", "multiply", "FiLM", "None", ("concatConv" only for convtasnet)
+    use_spk_transform: False
+    multi_fuse: True        # Multi speaker fuse with seperation modules
+    encoder_type: Multi # Multi, Deep, False
+    decoder_type: Multi # Multi, Deep, False
+    joint_training: True
+    multi_task: True
+    spksInTrain: 251    #wsj0-2mix: 101; Libri2mix-100: 251; Libri2mix-360:921
+
+model_init:
+  tse_model: null
+  discriminator: null
+num_avg: 5
+num_epochs: 150
+
+optimizer:
+  tse_model: Adam
+optimizer_args:
+  tse_model: 
+    lr: 0.001  # NOTICE: These args do NOT work! The initial lr is determined in the scheduler_args currently!
+    weight_decay: 0.0001
+save_epoch_interval: 5
+clip_grad: 5.0 # False
+
+scheduler:
+  tse_model: ExponentialDecrease
+scheduler_args:
+  tse_model:
+    final_lr: 2.5e-05
+    initial_lr: 0.001
+    warm_from_zero: False
+    warm_up_epoch: 0
+
+seed: 42

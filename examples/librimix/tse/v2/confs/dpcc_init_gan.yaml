@@ -1,0 +1,83 @@
+use_metric_loss: true
+
+dataloader_args:
+  batch_size: 4
+  drop_last: true
+  num_workers: 4
+  pin_memory: false
+  prefetch_factor: 4
+
+dataset_args:
+  resample_rate: 16000
+  sample_num_per_epoch: 0
+  shuffle: true
+  shuffle_args:
+    shuffle_size: 2500
+  chunk_len: 48000
+  noise_lmdb_file: './data/musan/lmdb'
+  noise_prob: 0 # prob to add noise aug per sample
+  specaug_enroll_prob: 0 # prob to apply SpecAug on fbank of enrollment speech 
+  reverb_enroll_prob: 0 # prob to add reverb aug on enrollment speech 
+  noise_enroll_prob: 0 # prob to add noise aug on enrollment speech 
+
+enable_amp: false
+exp_dir: exp/DPCNN
+gpus: '0,1'
+log_batch_interval: 100
+
+loss: SISNR
+loss_args: { }
+gan_loss_weight: 0.05
+
+model:
+  tse_model: DPCCN
+  discriminator: CMGAN_Discriminator
+model_args:
+  tse_model: 
+    win: 512
+    stride: 128
+    feature_dim: 257
+    tcn_blocks: 10
+    tcn_layers: 2
+    spk_emb_dim: 256
+    causal: False
+    spk_fuse_type: 'multiply'
+    use_spk_transform: False
+  discriminator: {}
+
+model_init: 
+  tse_model: exp/DPCCN/no_spk_transform-multiply_fuse/models/final_model.pt
+  discriminator: null
+num_avg: 5
+num_epochs: 50
+
+optimizer:
+  tse_model: Adam
+  discriminator: Adam
+optimizer_args:
+  tse_model:
+    lr: 0.0001
+    weight_decay: 0.0001
+  discriminator:
+    lr: 0.001
+    weight_decay: 0.0001
+
+clip_grad: 3.0
+save_epoch_interval: 1
+
+scheduler:
+  tse_model: ExponentialDecrease
+  discriminator: ExponentialDecrease
+scheduler_args:
+  tse_model:
+    final_lr: 2.5e-05
+    initial_lr: 0.0001
+    warm_from_zero: false
+    warm_up_epoch: 0
+  discriminator:
+    final_lr: 2.5e-05
+    initial_lr: 0.001
+    warm_from_zero: false
+    warm_up_epoch: 0
+
+seed: 42

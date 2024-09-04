@@ -187,5 +187,5 @@ class ConditionalLayerNorm(nn.Module):
         return res
 
     def extra_repr(self):
-        return "{normalized_shape}, {embed_dim}, modulate_bias={modulate_bias}, eps={eps}".format(
-            **self.__dict__)
+        return "{normalized_shape}, {embed_dim}, \
+            modulate_bias={modulate_bias}, eps={eps}".format(**self.__dict__)

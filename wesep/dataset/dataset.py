@@ -256,7 +256,7 @@ def tse_collate_fn(batch, mode="min"):
     new_batch["wav_targets"] = torch.concat(wav_targets)
     new_batch["spk_embeds"] = torch.concat(spk_embeds)
     new_batch["length_spk_embeds"] = (
-        length_spk_embeds  # Not used, but maybe needed when using the enrollment utterance
+        length_spk_embeds  # Not used, but maybe needed when using the enrollment utterance  # noqa
     )
     new_batch["spk"] = spk
     new_batch["key"] = key

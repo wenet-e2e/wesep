@@ -6,7 +6,7 @@
 ### Install for development & deployment
 * Clone this repo 
 ``` sh
-https://github.com/wsstriving/wesep.git
+https://github.com/wenet-e2e/wesep.git
 ```
 
 * Create conda env: pytorch version >= 1.12.0 is required !!!

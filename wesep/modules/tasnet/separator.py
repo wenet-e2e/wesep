@@ -5,11 +5,11 @@ from wesep.modules.tasnet.convs import Conv1DBlock
 
 class Separation(nn.Module):
     """
-    R	Number of repeats
-    X	Number of convolutional blocks in each repeat
-    B	Number of channels in bottleneck and the residual paths
-    H	Number of channels in convolutional blocks
-    P	Kernel size in convolutional blocks
+    R    Number of repeats
+    X    Number of convolutional blocks in each repeat
+    B    Number of channels in bottleneck and the residual paths
+    H    Number of channels in convolutional blocks
+    P    Kernel size in convolutional blocks
     norm The type of normalization(gln, cl, bn)
     causal  Two choice(causal or noncausal)
     skip_con Whether to use skip connection

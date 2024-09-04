@@ -34,6 +34,6 @@ void SplitStringToVector(const std::string& full, const char* delim,
 std::wstring ToWString(const std::string& str);
 #endif
 
-}  // namespace wespeaker
+}  // namespace wesep
 
 #endif  // UTILS_UTILS_H_

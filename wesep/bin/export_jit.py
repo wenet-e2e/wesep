@@ -27,23 +27,20 @@ def main():
         configs = yaml.load(fin, Loader=yaml.FullLoader)
     print(configs)
 
-    model = get_model(configs["model"]["tse_model"])(
-        **configs["model_args"]["tse_model"]
-    )
+    model = get_model(
+        configs["model"]["tse_model"])(**configs["model_args"]["tse_model"])
     print(model)
 
     load_pretrained_model(model, args.checkpoint)
     model.eval()
 
     speaker_feat_dim = configs["dataset_args"]["fbank_args"].get(
-        "num_mel_bins", 80
-    )
+        "num_mel_bins", 80)
 
     speaker_dummy_input = torch.ones(2, 300, speaker_feat_dim)
     mix_dummy_input = torch.ones(2, 81280)
-    script_model = torch.jit.script(
-        model, (mix_dummy_input, speaker_dummy_input)
-    )
+    script_model = torch.jit.script(model,
+                                    (mix_dummy_input, speaker_dummy_input))
     script_model.save(args.output_model)
     print("Export model successfully, see {}".format(args.output_model))
 

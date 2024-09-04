@@ -27,9 +27,10 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class TFGridNet(nn.Module):
-    """Offline TFGridNetV2. Compared with TFGridNet, TFGridNetV2 speeds up the code
-        by vectorizing multiple heads in self-attention, and better dealing with
-        Deconv1D in each intra- and inter-block when emb_ks == emb_hs.
+    """Offline TFGridNetV2. Compared with TFGridNet, TFGridNetV2 speeds up
+        the code by vectorizing multiple heads in self-attention,
+        and better dealing with Deconv1D in each intra- and inter-block
+        when emb_ks == emb_hs.
 
     Reference:
     [1] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,

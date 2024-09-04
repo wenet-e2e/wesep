@@ -140,38 +140,38 @@ def FRAM_RIR(
     mic_pattern="omni",
     mic_orientation_rad=None,
 ):
-    """Fast Random Appoximation of Multi-channel Room Impulse Response (FRAM-RIR)
+    """Fast Random Appoximation of Multi-channel Room Impulse Response (FRAM-RIR)  # noqa
 
     Args:
-        mic_pos: The microphone(s) position with respect to the room coordinates,
-                 with shape [num_mic, 3] (in meters). Room coordinate system must be defined in advance,
-                 with the constraint that the origin of the coordinate is on the floor(so positive z axis points up).
+        mic_pos: The microphone(s) position with respect to the room coordinates,  # noqa
+                 with shape [num_mic, 3] (in meters). Room coordinate system must be defined in advance,  # noqa
+                 with the constraint that the origin of the coordinate is on the floor(so positive z axis points up).  # noqa
         sr: RIR sampling rate (Hz).
         T60: RT60 (second).
         room_dim: Room size with shape [3] (meters).
-        src_pos: The source(s) position with respect to the room coordinate system, with shape [num_src, 3] (meters).
+        src_pos: The source(s) position with respect to the room coordinate system, with shape [num_src, 3] (meters).  # noqa
         num_src: Number of sources. Defaults to 1.
-        direct_range: 2-element tuple, range of early reflection time (milliseconds,
-                                        defined as the context around the direct path signal) of RIRs.
+        direct_range: 2-element tuple, range of early reflection time (milliseconds,  # noqa
+                                        defined as the context around the direct path signal) of RIRs.  # noqa
                                         Defaults to (-6, 50).
-        n_image: 2-element tuple, minimum and maximum number of images to sample from.
+        n_image: 2-element tuple, minimum and maximum number of images to sample from.  # noqa
                                    Defaults to (1024, 4097).
-        a: controlling the random perturbation added to each virtual sound source.  Defaults to -2.0.
-        b: controlling the random perturbation added to each virtual sound source. Defaults to 2.0.
-        tau: controlling the relationship between the distance and the number of reflections of each
+        a: controlling the random perturbation added to each virtual sound source.  Defaults to -2.0.  # noqa
+        b: controlling the random perturbation added to each virtual sound source. Defaults to 2.0.  # noqa
+        tau: controlling the relationship between the distance and the number of reflections of each  # noqa
                                virtual sound source. Defaults to 0.25.
         src_pattern: Polar pattern for all of the sources. Defaults to "omni".
-        src_orientation_rad: Array-like with shape [num_src, 2]. Orientation (rad) of all
-                                                the sources, where the first column indicate azimuth and the
-                                                second column indicate elevation. Defaults to None.
+        src_orientation_rad: Array-like with shape [num_src, 2]. Orientation (rad) of all  # noqa
+                                                the sources, where the first column indicate azimuth and the  # noqa
+                                                second column indicate elevation. Defaults to None.  # noqa
         mic_pattern: Polar pattern for all of the receivers. Defaults to "omni".
-        mic_orientation_rad: Array-like with shape [num_mic, 2]. Orientation (rad) of all
-                                                the microphones, where the first column indicate azimuth and
-                                                the second column indicate elevation. Defaults to None.
+        mic_orientation_rad: Array-like with shape [num_mic, 2]. Orientation (rad) of all  # noqa
+                                                the microphones, where the first column indicate azimuth and  # noqa
+                                                the second column indicate elevation. Defaults to None.  # noqa
 
     Returns:
-        rir: RIR filters for all mic-source pairs, with shape [num_mic, num_src, rir_length].
-        early_rir: Early reflection (direct path) RIR filters for all mic-source pairs,
+        rir: RIR filters for all mic-source pairs, with shape [num_mic, num_src, rir_length].  # noqa
+        early_rir: Early reflection (direct path) RIR filters for all mic-source pairs,  # noqa
                    with shape [num_mic, num_src, rir_length].
     """
 
@@ -269,8 +269,8 @@ def FRAM_RIR(
     # source orientation simulation #
     #################################
     if src_pattern != "omni":
-        # randomly sample each image's relative orientation with respect to the original source
-        # equivalent to a random decay corresponds to the source's orientation pattern decay
+        # randomly sample each image's relative orientation with respect to the original source  # noqa
+        # equivalent to a random decay corresponds to the source's orientation pattern decay  # noqa
         img_orientation_rad = torch.FloatTensor(num_src, image,
                                                 2).uniform_(-np.pi, np.pi)
         img_cos_theta = torch.cos(img_orientation_rad[..., 0]) * torch.cos(
@@ -413,11 +413,11 @@ def sample_src_pos(
 
 def sample_mic_array_pos(mic_arch, room_dim, min_dis_wall=None):
     """
-    Generate the microphone array position according to the given microphone architecture (geometry)
+    Generate the microphone array position according to the given microphone architecture (geometry)  # noqa
     :param mic_arch: np.array with shape [n_mic, 3]
                     the relative 3D coordinate to the array_pos in (m)
                     e.g., 2-mic linear array [[-0.1, 0, 0], [0.1, 0, 0]];
-                    e.g., 4-mic circular array [[0, 0.035, 0], [0.035, 0, 0], [0, -0.035, 0], [-0.035, 0, 0]]
+                    e.g., 4-mic circular array [[0, 0.035, 0], [0.035, 0, 0], [0, -0.035, 0], [-0.035, 0, 0]]  # noqa
     :param min_dis_wall: minimum distance from the wall in (m)
     :return
         mic_pos: microphone array position in (m) with shape [n_mic, 3]

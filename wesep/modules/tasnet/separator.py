@@ -21,8 +21,7 @@ class Separation(nn.Module):
         for _ in range(R):
             for x in range(X):
                 self.separation.append(
-                    Conv1DBlock(B, H, P, 2**x, norm, causal, skip_con)
-                )
+                    Conv1DBlock(B, H, P, 2**x, norm, causal, skip_con))
         self.skip_con = skip_con
 
     def forward(self, x):

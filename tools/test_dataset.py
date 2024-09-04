@@ -8,14 +8,15 @@ from wesep.utils.file_utils import load_speaker_embeddings
 def test_premixed_dataset():
     configs = {
         "shuffle": False,
-        "shuffle_args": {"shuffle_size": 2500},
+        "shuffle_args": {
+            "shuffle_size": 2500
+        },
         "resample_rate": 16000,
         "chunk_len": 32000,
     }
 
-    spk2embed_dict = load_speaker_embeddings(
-        "data/clean/test/embed.scp", "data/clean/test/single.utt2spk"
-    )
+    spk2embed_dict = load_speaker_embeddings("data/clean/test/embed.scp",
+                                             "data/clean/test/single.utt2spk")
 
     dataset = Dataset(
         "shard",
@@ -38,9 +39,8 @@ def test_online_dataset():
         "reverb": False,
     }
 
-    spk2embed_dict = load_speaker_embeddings(
-        "mydata/clean/test/embed.scp", "mydata/clean/test/utt2spk"
-    )
+    spk2embed_dict = load_speaker_embeddings("mydata/clean/test/embed.scp",
+                                             "mydata/clean/test/utt2spk")
     dataset = Dataset(
         "shard",
         "mydata/clean/test/shard.list",
@@ -55,9 +55,10 @@ def test_online_dataset():
 if __name__ == "__main__":
     dataset = test_online_dataset()
 
-    dataloader = DataLoader(
-        dataset, batch_size=4, num_workers=1, collate_fn=tse_collate_fn
-    )
+    dataloader = DataLoader(dataset,
+                            batch_size=4,
+                            num_workers=1,
+                            collate_fn=tse_collate_fn)
 
     for i, batch in enumerate(dataloader):
         print(

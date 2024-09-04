@@ -34,7 +34,7 @@ model_args:
     spk_fuse_type: 'multiply'
     use_spk_transform: False
     multi_fuse: False        # Multi speaker fuse with seperation modules
-    joint_training: False  
+    joint_training: False
 
 model_init:
   tse_model: null

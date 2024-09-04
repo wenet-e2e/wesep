@@ -104,7 +104,7 @@ def train(config="conf/config.yaml", **kwargs):
             0,
         ]],
     )
-    # loss_weight[i][j] stores the loss weight of output[loss_posi[i][j]] for the i-th criterion.
+    # loss_weight[i][j] stores the loss weight of output[loss_posi[i][j]] for the i-th criterion.  # noqa
     loss_weight = configs["loss_args"].get(
         "loss_weight",
         [[

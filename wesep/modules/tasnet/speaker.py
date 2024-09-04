@@ -24,9 +24,10 @@ class ResBlock(nn.Module):
         self.mp = nn.MaxPool1d(3)
         if in_dims != out_dims:
             self.downsample = True
-            self.conv_downsample = nn.Conv1d(
-                in_dims, out_dims, kernel_size=1, bias=False
-            )
+            self.conv_downsample = nn.Conv1d(in_dims,
+                                             out_dims,
+                                             kernel_size=1,
+                                             bias=False)
         else:
             self.downsample = False
 
@@ -45,6 +46,7 @@ class ResBlock(nn.Module):
 
 
 class ResNet4SpExplus(nn.Module):
+
     def __init__(self, in_channel=256, C_embedding=256):
         super().__init__()
         self.aux_enc3 = nn.Sequential(

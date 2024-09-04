@@ -20,9 +20,9 @@ dataset_args:
     dither: 1.0
   noise_lmdb_file: './data/musan/lmdb'
   noise_prob: 0 # prob to add noise aug per sample
-  specaug_enroll_prob: 0 # prob to apply SpecAug on fbank of enrollment speech 
-  reverb_enroll_prob: 0 # prob to add reverb aug on enrollment speech 
-  noise_enroll_prob: 0 # prob to add noise aug on enrollment speech 
+  specaug_enroll_prob: 0 # prob to apply SpecAug on fbank of enrollment speech
+  reverb_enroll_prob: 0 # prob to add reverb aug on enrollment speech
+  noise_enroll_prob: 0 # prob to add noise aug on enrollment speech
 
 enable_amp: false
 exp_dir: exp/DPCNN
@@ -40,7 +40,7 @@ loss_args: { }
 model:
   tse_model: DPCCN
 model_args:
-  tse_model: 
+  tse_model:
     win: 512
     stride: 128
     feature_dim: 257

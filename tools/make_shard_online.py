@@ -31,7 +31,8 @@ def write_tar_file(data_list, tar_file, index=0, total=1):
     write_time = 0.0
     with tarfile.open(tar_file, "w") as tar:
         for item in data_list:
-            assert len(item) == 3, 'item should have 3 elements: Key, Speaker, Wav'
+            assert len(
+                item) == 3, 'item should have 3 elements: Key, Speaker, Wav'
             key, spk, wav = item
 
             suffix = wav.split('.')[-1]

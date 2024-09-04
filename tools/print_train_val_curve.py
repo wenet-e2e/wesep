@@ -37,12 +37,14 @@ plt.plot(epochs, train_loss, label="Training Loss", color="blue")
 plt.plot(epochs, val_loss, label="Validation Loss", color="red")
 
 # Add horizontal lines at the minimum values
-plt.axhline(
-    min(train_loss), color="blue", linestyle="--", label="Min Training Loss"
-)
-plt.axhline(
-    min(val_loss), color="red", linestyle="--", label="Min Validation Loss"
-)
+plt.axhline(min(train_loss),
+            color="blue",
+            linestyle="--",
+            label="Min Training Loss")
+plt.axhline(min(val_loss),
+            color="red",
+            linestyle="--",
+            label="Min Validation Loss")
 
 # Annotate the minimum values on the y-axis
 plt.text(

@@ -2,10 +2,10 @@
 
 #include "separate/separate_engine.h"
 
+#include "gflags/gflags.h"
+#include "glog/logging.h"
 #include "torch/script.h"
 #include "torch/torch.h"
-#include "glog/logging.h"
-#include "gflags/gflags.h"
 
 namespace wesep {
 
@@ -16,25 +16,25 @@ void SeparateEngine::InitEngineThreads(int num_threads) {
 }
 
 SeparateEngine::SeparateEngine(const std::string& model_path,
-                               const int feat_dim,
-                               const int sample_rate) {
-
-  sample_rate_  = sample_rate;
+                               const int feat_dim, const int sample_rate) {
+  sample_rate_ = sample_rate;
   feat_dim_ = feat_dim;
-  feature_config_ = std::make_shared<wenet::FeaturePipelineConfig>(feat_dim, sample_rate);
-  feature_pipeline_ = std::make_shared<wenet::FeaturePipeline>(*feature_config_);
+  feature_config_ =
+      std::make_shared<wenet::FeaturePipelineConfig>(feat_dim, sample_rate);
+  feature_pipeline_ =
+      std::make_shared<wenet::FeaturePipeline>(*feature_config_);
   feature_pipeline_->Reset();
 
   InitEngineThreads(1);
   torch::jit::script::Module model = torch::jit::load(model_path);
-  model_ = std::make_shared<torch::jit::script::Module> (std::move(model));
+  model_ = std::make_shared<torch::jit::script::Module>(std::move(model));
   model_->eval();
 }
 
-void SeparateEngine::ExtractFeature(const int16_t* data,
-                               int data_size,
-                               std::vector<std::vector<float>>* feat) {
-  feature_pipeline_->AcceptWaveform(std::vector<int16_t>(data, data + data_size));
+void SeparateEngine::ExtractFeature(const int16_t* data, int data_size,
+                                    std::vector<std::vector<float>>* feat) {
+  feature_pipeline_->AcceptWaveform(
+      std::vector<int16_t>(data, data + data_size));
   feature_pipeline_->set_input_finished();
   feature_pipeline_->Read(feature_pipeline_->num_frames(), feat);
   feature_pipeline_->Reset();
@@ -54,11 +54,10 @@ void SeparateEngine::ApplyMean(std::vector<std::vector<float>>* feat) {
   }
 }
 
-void SeparateEngine::ForwardFunc(const std::vector<int16_t> &mix_wav,
+void SeparateEngine::ForwardFunc(const std::vector<int16_t>& mix_wav,
                                  const int16_t* spk1_emb,
-                                 const int16_t* spk2_emb,
-                                 int data_size,
-                                 std::vector<std::vector<float>> *output) {
+                                 const int16_t* spk2_emb, int data_size,
+                                 std::vector<std::vector<float>>* output) {
   // pre-process
   std::vector<float> input_wav(mix_wav.size());
   for (int i = 0; i < mix_wav.size(); i++) {
@@ -71,28 +70,29 @@ void SeparateEngine::ForwardFunc(const std::vector<int16_t> &mix_wav,
 
   // torch mix_wav
   torch::Tensor torch_wav = torch::zeros({2, mix_wav.size()}, torch::kFloat32);
-  for (size_t i = 0; i < 2; i++){
-    torch::Tensor row = torch::from_blob(input_wav.data(), {input_wav.size()},
-                                         torch::kFloat32).clone();
+  for (size_t i = 0; i < 2; i++) {
+    torch::Tensor row =
+        torch::from_blob(input_wav.data(), {input_wav.size()}, torch::kFloat32)
+            .clone();
     torch_wav[i] = std::move(row);
   }
 
   // torch spk_emb_feat
-  torch::Tensor torch_spk_emb_feat = torch::zeros(
-    {2, spk1_emb_feat.size(), feat_dim_}, torch::kFloat32);
+  torch::Tensor torch_spk_emb_feat =
+      torch::zeros({2, spk1_emb_feat.size(), feat_dim_}, torch::kFloat32);
   for (size_t i = 0; i < spk1_emb_feat.size(); i++) {
-    torch::Tensor row1 = torch::from_blob(spk1_emb_feat[i].data(), {feat_dim_},
-                                          torch::kFloat32);
+    torch::Tensor row1 =
+        torch::from_blob(spk1_emb_feat[i].data(), {feat_dim_}, torch::kFloat32);
     torch_spk_emb_feat[0][i] = std::move(row1);
-    torch::Tensor row2 = torch::from_blob(spk2_emb_feat[i].data(), {feat_dim_},
-                                          torch::kFloat32);
+    torch::Tensor row2 =
+        torch::from_blob(spk2_emb_feat[i].data(), {feat_dim_}, torch::kFloat32);
     torch_spk_emb_feat[1][i] = std::move(row2);
   }
 
   // forward
   torch::NoGradGuard no_grad;
-  auto outputs = model_->forward(
-    {torch_wav, torch_spk_emb_feat}).toTuple()->elements();
+  auto outputs =
+      model_->forward({torch_wav, torch_spk_emb_feat}).toTuple()->elements();
   torch::Tensor wav_out = outputs[0].toTensor();
   auto accessor = wav_out.accessor<float, 2>();
 

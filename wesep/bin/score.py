@@ -284,26 +284,22 @@ def get_parser():
         default=False,
         help="used when dnsmsos_mode='local'",
     )
-    group.add_argument(
-        "--dnsmos_primary_model",
-        type=str,
-        default="./DNSMOS/sig_bak_ovr.onnx",
-        help=
-        "Path to the primary DNSMOS model. Required if dnsmsos_mode='local'",
-    )
+    group.add_argument("--dnsmos_primary_model",
+                       type=str,
+                       default="./DNSMOS/sig_bak_ovr.onnx",
+                       help="Path to the primary DNSMOS model. "
+                       "Required if dnsmsos_mode='local'")
     group.add_argument(
         "--dnsmos_p808_model",
         type=str,
         default="./DNSMOS/model_v8.onnx",
         help="Path to the p808 model. Required if dnsmsos_mode='local'",
     )
-    group.add_argument(
-        "--dnsmos_gpu_device",
-        type=int,
-        default=None,
-        help=
-        "gpu device to use for DNSMOS evaluation. Used when dnsmsos_mode='local'",
-    )
+    group.add_argument("--dnsmos_gpu_device",
+                       type=int,
+                       default=None,
+                       help="gpu device to use for DNSMOS evaluation. "
+                       "Used when dnsmsos_mode='local'")
 
     group = parser.add_argument_group("PESQ related")
     group.add_argument(

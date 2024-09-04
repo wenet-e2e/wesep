@@ -2,7 +2,6 @@
 #ifndef SEPARATE_SEPARATE_ENGINE_H_
 #define SEPARATE_SEPARATE_ENGINE_H_
 
-
 #include "torch/script.h"
 #include "torch/torch.h"
 
@@ -12,20 +11,16 @@ namespace wesep {
 
 class SeparateEngine {
  public:
-  explicit SeparateEngine(const std::string& model_path,
-                          const int feat_dim,
+  explicit SeparateEngine(const std::string& model_path, const int feat_dim,
                           const int sample_rate);
 
   void InitEngineThreads(int num_threads = 1);
 
-  void ForwardFunc(const std::vector<int16_t> &mix_wav,
-                   const int16_t* spk1_emb,
-                   const int16_t* spk2_emb,
-                   int data_size,
-                   std::vector<std::vector<float>> *output);
+  void ForwardFunc(const std::vector<int16_t>& mix_wav, const int16_t* spk1_emb,
+                   const int16_t* spk2_emb, int data_size,
+                   std::vector<std::vector<float>>* output);
 
-  void ExtractFeature(const int16_t* data,
-                      int data_size,
+  void ExtractFeature(const int16_t* data, int data_size,
                       std::vector<std::vector<float>>* feat);
 
   void ApplyMean(std::vector<std::vector<float>>* feat);

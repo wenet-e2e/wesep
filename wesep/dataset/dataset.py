@@ -137,7 +137,8 @@ class DataList(IterableDataset):
 
 
 def tse_collate_fn_2spk(batch, mode="min"):
-    # Warning: hard-coded for 2 speakers, will be deprecated in the future, use tse_collate_fn instead
+    # Warning: hard-coded for 2 speakers, will be deprecated in the future,
+    # use tse_collate_fn instead
     new_batch = {}
 
     wav_mix = []
@@ -299,7 +300,7 @@ def Dataset(
         :param reverb_prob:probility to add reverb on mixture
         :param noise_enroll_prob:probility to add noise on enrollment speech
         :param reverb_enroll_prob:probility to add reverb on enrollment speech
-        :param specaug_enroll_prob: probility to apply SpecAug on fbank of enrollment speech
+        :param specaug_enroll_prob: probility to apply SpecAug on fbank of enrollment speech  # noqa
         :param noise_lmdb_file: noise data source lmdb file
         :param whole_utt: use whole utt or random chunk
         :param repeat_dataset:

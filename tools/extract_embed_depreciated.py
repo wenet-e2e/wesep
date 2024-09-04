@@ -27,16 +27,18 @@ def get_args():
     parser = argparse.ArgumentParser(description="infer example using onnx")
     parser.add_argument("--onnx_path", required=True, help="onnx path")
     parser.add_argument("--wav_scp", required=True, help="wav path")
-    parser.add_argument(
-        "--out_path", required=True, help="output path of the embeddings"
-    )
+    parser.add_argument("--out_path",
+                        required=True,
+                        help="output path of the embeddings")
     args = parser.parse_args()
     return args
 
 
-def compute_fbank(
-    wav_path, num_mel_bins=80, frame_length=25, frame_shift=10, dither=0.0
-):
+def compute_fbank(wav_path,
+                  num_mel_bins=80,
+                  frame_length=25,
+                  frame_shift=10,
+                  dither=0.0):
     """Extract fbank, simlilar to the one in wespeaker.dataset.processor,
     While integrating the wave reading and CMN.
     """
@@ -68,9 +70,8 @@ def main():
     embed_ark = os.path.join(args.out_path, "embed.ark")
     embed_scp = os.path.join(args.out_path, "embed.scp")
 
-    with kaldiio.WriteHelper(
-        "ark,scp:" + embed_ark + "," + embed_scp
-    ) as writer:
+    with kaldiio.WriteHelper("ark,scp:" + embed_ark + "," +
+                             embed_scp) as writer:
         with open(args.wav_scp, "r") as read_scp:
             for line in tqdm(read_scp):
                 tokens = line.strip().split(" ")
@@ -78,9 +79,8 @@ def main():
 
                 feats = compute_fbank(wav_path)
                 feats = feats.unsqueeze(0).numpy()  # add batch dimension
-                embed = session.run(
-                    output_names=["embs"], input_feed={"feats": feats}
-                )
+                embed = session.run(output_names=["embs"],
+                                    input_feed={"feats": feats})
                 writer(name, embed[0])
 
 

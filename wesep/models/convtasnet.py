@@ -12,6 +12,7 @@ from wespeaker.models.speaker_model import get_speaker_model
 
 
 class ConvTasNet(nn.Module):
+
     def __init__(
         self,
         N=512,
@@ -79,8 +80,7 @@ class ConvTasNet(nn.Module):
             self.BottleN_S = Conv1D(N, B, 1)
         else:
             self.encoder = nn.Sequential(
-                Conv1D(1, N, L, stride=L // 2, padding=0), nn.ReLU()
-            )
+                Conv1D(1, N, L, stride=L // 2, padding=0), nn.ReLU())
             self.LayerN_S = select_norm(norm, N)
             self.BottleN_S = Conv1D(N, B, 1)
 
@@ -163,9 +163,7 @@ class ConvTasNet(nn.Module):
         if x.dim() >= 3:
             raise RuntimeError(
                 "{} accept 1/2D tensor as input, but got {:d}".format(
-                    self.__name__, x.dim()
-                )
-            )
+                    self.__name__, x.dim()))
         if x.dim() == 1:
             x = torch.unsqueeze(x, 0)
         # x: n x 1 x L => n x N x T
@@ -176,12 +174,10 @@ class ConvTasNet(nn.Module):
             x = self.encoder(x)
             e = self.LayerN_S(x)
             e = self.BottleN_S(
-                e
-            )  # Embedding fuse after dimension changed fro N to B
+                e)  # Embedding fuse after dimension changed fro N to B
 
-        if (
-            self.joint_training
-        ):  # Only support sharing Encoder and ResNet in SpEx+ currently
+        if (self.joint_training):
+            # Only support sharing Encoder and ResNet in SpEx+ currently
             # Speaker Encoder
             if not self.spk_feat and self.feat_type == "consistent":
                 if self.encoder_type == "Multi":
@@ -203,8 +199,8 @@ class ConvTasNet(nn.Module):
         # decoder part  n x L
         if self.decoder_type == "Multi":
             s = self.decoder(
-                e, w1, w2, w3, actLayer=self.activation
-            )  # s is a tuple by using multiDecoder
+                e, w1, w2, w3,
+                actLayer=self.activation)  # s is a tuple by using multiDecoder
         else:
             # n x B x L => n x N x L
             m = self.gen_masks(e)

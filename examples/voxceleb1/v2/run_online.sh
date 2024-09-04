@@ -27,7 +27,7 @@ save_results=true
 . tools/parse_options.sh || exit 1
 
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then       
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   echo "Prepare datasets ..."
   ./local/prepare_data.sh --single_data_path ${Vox1_dir} \
     --mix_data_path ${mix_data_path} \

@@ -275,11 +275,11 @@ def mix_speakers(data, num_speaker=2, shuffle_size=1000):
 
 
 def snr_mixer(data, use_random_snr: bool = False):
-    """Dynamic mixing speakers when loading data, shuffle is not needed if this function is used.
+    """Dynamic mixing speakers when loading data, shuffle is not needed if this function is used.  # noqa
 
     Args:
         data: Iterable[{key, wav_spk1, wav_spk2, ..., spk1, spk2, ...}]
-        use_random_snr (bool, optional): Whether use random SNR to mix speeches. Defaults to False.
+        use_random_snr (bool, optional): Whether use random SNR to mix speeches. Defaults to False.  # noqa
 
     Returns:
         Iterable[{key, wav_mix, wav_spk1, wav_spk2, ..., spk1, spk2, ...}]
@@ -429,10 +429,10 @@ def sample_enrollment(data, spk_embeds, dict_spk):
     """sample reference speech for the target speaker
     Args:
         data: Iterable[{key, wav, label, sample_rate}]
-        spk_embeds: dict which stores all potential enrollment utterance files(/.wav) for the speaker
+        spk_embeds: dict which stores all potential enrollment utterance files(/.wav) for the speaker  # noqa
         dict_spk: dict of speakers in the enrollment sets [Order: spkID]
     Returns:
-        Iterable[{key, wav, label, sample_rate, spk_embed(raw waveform of enrollment),
+        Iterable[{key, wav, label, sample_rate, spk_embed(raw waveform of enrollment),  # noqa
                   spk_lable(when multi-task training)}]
     """
     for sample in data:
@@ -455,10 +455,10 @@ def sample_fix_spk_enrollment(data,
     """sample reference speaker embeddings for the target speaker
     Args:
         data: Iterable[{key, wav, label, sample_rate}]
-        spk_embeds: dict which stores all potential enrollment utterance files(/.wav) for the speaker
+        spk_embeds: dict which stores all potential enrollment utterance files(/.wav) for the speaker  # noqa
         dict_spk: dict of speakers in the enrollment sets [Order: spkID]
     Returns:
-        Iterable[{key, wav, label, sample_rate, spk_embed(raw waveform of enrollment),
+        Iterable[{key, wav, label, sample_rate, spk_embed(raw waveform of enrollment),  # noqa
                   spk_lable(when multi-task training)}]
     """
     for sample in data:
@@ -485,10 +485,10 @@ def compute_fbank(data,
     """Extract fbank
 
     Args:
-        data: Iterable['spk1', 'spk2', 'wav_mix', 'sample_rate', 'wav_spk1', 'wav_spk2', 'key', 'num_speaker', 'embed_spk1', 'embed_spk2']
+        data: Iterable['spk1', 'spk2', 'wav_mix', 'sample_rate', 'wav_spk1', 'wav_spk2', 'key', 'num_speaker', 'embed_spk1', 'embed_spk2']  # noqa
 
     Returns:
-        Iterable['spk1', 'spk2', 'wav_mix', 'sample_rate', 'wav_spk1', 'wav_spk2', 'key', 'num_speaker', 'embed_spk1', 'embed_spk2']
+        Iterable['spk1', 'spk2', 'wav_mix', 'sample_rate', 'wav_spk1', 'wav_spk2', 'key', 'num_speaker', 'embed_spk1', 'embed_spk2']  # noqa
     """
     for sample in data:
         assert "sample_rate" in sample
@@ -516,10 +516,10 @@ def apply_cmvn(data, norm_mean=True, norm_var=False):
     """Apply CMVN
 
     Args:
-        data: Iterable['spk1', 'spk2', 'wav_mix', 'sample_rate', 'wav_spk1', 'wav_spk2', 'key', 'num_speaker', 'embed_spk1', 'embed_spk2']
+        data: Iterable['spk1', 'spk2', 'wav_mix', 'sample_rate', 'wav_spk1', 'wav_spk2', 'key', 'num_speaker', 'embed_spk1', 'embed_spk2']  # noqa
 
     Returns:
-        Iterable['spk1', 'spk2', 'wav_mix', 'sample_rate', 'wav_spk1', 'wav_spk2', 'key', 'num_speaker', 'embed_spk1', 'embed_spk2']
+        Iterable['spk1', 'spk2', 'wav_mix', 'sample_rate', 'wav_spk1', 'wav_spk2', 'key', 'num_speaker', 'embed_spk1', 'embed_spk2']  # noqa
     """
     for sample in data:
         all_keys = list(sample.keys())
@@ -662,11 +662,11 @@ def add_noise(
         noise_lmdb_file: noise LMDB data source.
         noise_db_low (int, optional): SNR lower bound. Defaults to -5.
         noise_db_high (int, optional): SNR upper bound. Defaults to 25.
-        single_channel (bool, optional): Whether to force the noise file to be single channel.
+        single_channel (bool, optional): Whether to force the noise file to be single channel.  # noqa
                                          Defaults to True.
 
     Returns:
-        Iterable[{key, wav_mix, wav_spk1, wav_spk2, ..., spk1, spk2, ..., noise, snr}]
+        Iterable[{key, wav_mix, wav_spk1, wav_spk2, ..., spk1, spk2, ..., noise, snr}]  # noqa
     """
     noise_source = LmdbData(noise_lmdb_file)
     for sample in data:
@@ -718,7 +718,7 @@ def add_noise(
             noise = noise.T
             if tgt_fs and fs != tgt_fs:
                 logging.warning(
-                    f"Resampling noise to match the sampling rate ({fs} -> {tgt_fs} Hz)"
+                    f"Resampling noise to match the sampling rate ({fs} -> {tgt_fs} Hz)"  # noqa
                 )
                 noise = librosa.resample(noise,
                                          orig_sr=fs,
@@ -775,7 +775,7 @@ def add_reverb(data, reverb_prob=0):
 
                 max_scale = np.max(np.abs(rir_audio))
                 out_audio = rir_audio / max_scale * 0.9
-                # Note: Here, we do not replace the dry audio with the reverberant audio,
+                # Note: Here, we do not replace the dry audio with the reverberant audio,  # noqa
                 # which means we hope the model to perform dereverberation and
                 # TSE simultaneously.
                 sample[f"wav_spk{i + 1}"] = torch.from_numpy(out_audio)
@@ -797,11 +797,11 @@ def add_noise_on_enroll(
         noise_lmdb_file: noise LMDB data source.
         noise_db_low (int, optional): SNR lower bound. Defaults to 0.
         noise_db_high (int, optional): SNR upper bound. Defaults to 25.
-        single_channel (bool, optional): Whether to force the noise file to be single channel.
+        single_channel (bool, optional): Whether to force the noise file to be single channel.  # noqa
                                          Defaults to True.
 
     Returns:
-        Iterable[{key, wav_mix, wav_spk1, wav_spk2, ..., spk1, spk2, ..., noise, snr}]
+        Iterable[{key, wav_mix, wav_spk1, wav_spk2, ..., spk1, spk2, ..., noise, snr}]  # noqa
     """
 
     noise_source = LmdbData(noise_lmdb_file)
@@ -864,7 +864,7 @@ def add_noise_on_enroll(
                     noise = noise.T
                     if tgt_fs and fs != tgt_fs:
                         logging.warning(
-                            f"Resampling noise to match the sampling rate ({fs} -> {tgt_fs} Hz)"
+                            f"Resampling noise to match the sampling rate ({fs} -> {tgt_fs} Hz)"  # noqa
                         )
                         noise = librosa.resample(
                             noise,
@@ -917,7 +917,7 @@ def add_reverb_on_enroll(data, reverb_enroll_prob=0):
 
                 max_scale = np.max(np.abs(rir_audio))
                 out_audio = rir_audio / max_scale * 0.9
-                # Note: Here, we do not replace the dry audio with the reverberant audio,
+                # Note: Here, we do not replace the dry audio with the reverberant audio,  # noqa
                 # which means we hope the model to perform dereverberation and
                 # TSE simultaneously.
                 sample[f"embed_spk{i+1}"] = out_audio

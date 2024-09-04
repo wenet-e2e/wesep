@@ -67,4 +67,4 @@ std::wstring ToWString(const std::string& str) {
 }
 #endif
 
-}  // namespace wespeaker
+}  // namespace wesep

@@ -14,9 +14,9 @@ dataset_args:
   chunk_len: 48000
   noise_lmdb_file: './data/musan/lmdb'
   noise_prob: 0 # prob to add noise aug per sample
-  specaug_enroll_prob: 0 # prob to apply SpecAug on fbank of enrollment speech 
-  reverb_enroll_prob: 0 # prob to add reverb aug on enrollment speech 
-  noise_enroll_prob: 0 # prob to add noise aug on enrollment speech 
+  specaug_enroll_prob: 0 # prob to apply SpecAug on fbank of enrollment speech
+  reverb_enroll_prob: 0 # prob to add reverb aug on enrollment speech
+  noise_enroll_prob: 0 # prob to add noise aug on enrollment speech
 
 enable_amp: false
 exp_dir: exp/SpExplus/
@@ -33,7 +33,7 @@ loss_args:
 model:
   tse_model: ConvTasNet
 model_args:
-  tse_model: 
+  tse_model:
     B: 256
     H: 512
     L: 20
@@ -64,7 +64,7 @@ num_epochs: 150
 optimizer:
   tse_model: Adam
 optimizer_args:
-  tse_model: 
+  tse_model:
     lr: 0.001  # NOTICE: These args do NOT work! The initial lr is determined in the scheduler_args currently!
     weight_decay: 0.0001
 save_epoch_interval: 5

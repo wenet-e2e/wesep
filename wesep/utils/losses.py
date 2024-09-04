@@ -2,7 +2,6 @@ import auraloss
 import torch.nn as nn
 import torchmetrics.audio as audio_metrics
 from torchmetrics.functional.audio import scale_invariant_signal_noise_ratio
-
 """Get a loss function with its name from the configuration file."""
 valid_losses = {}
 
@@ -14,9 +13,9 @@ torch_losses = {
 
 torchmetrics_losses = {
     # Not tested
-    "PIT": audio_metrics.PermutationInvariantTraining(
-        scale_invariant_signal_noise_ratio
-    ),
+    "PIT":
+    audio_metrics.PermutationInvariantTraining(
+        scale_invariant_signal_noise_ratio),
 }
 
 auraloss_losses = {

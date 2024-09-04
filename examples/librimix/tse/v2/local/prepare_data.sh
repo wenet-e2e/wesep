@@ -101,24 +101,24 @@ fi
 #   done
 # fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then 
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
   if [ ! -d "${data}/raw_data/musan" ]; then
     mkdir -p ${data}/raw_data/musan
-    # 
+    #
     echo "Downloading musan.tar.gz ..."
     echo "This may take a long time. Thus we recommand you to download all archives above in your own way first."
     wget --no-check-certificate https://openslr.elda.org/resources/17/musan.tar.gz -P ${data}/raw_data
     md5=$(md5sum ${data}/raw_data/musan.tar.gz | awk '{print $1}')
     [ $md5 != "0c472d4fc0c5141eca47ad1ffeb2a7df" ] && echo "Wrong md5sum of musan.tar.gz" && exit 1
 
-    echo "Decompress all archives ..." 
+    echo "Decompress all archives ..."
     tar -xzvf ${data}/raw_data/musan.tar.gz -C ${data}/raw_data
 
-    rm -rf ${data}/raw_data/musan.tar.gz 
+    rm -rf ${data}/raw_data/musan.tar.gz
   fi
 
   echo "Prepare wav.scp for musan ..."
-  mkdir -p ${data}/musan 
+  mkdir -p ${data}/musan
   find ${data}/raw_data/musan -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' >${data}/musan/wav.scp
 
   # Convert all musan data to LMDB

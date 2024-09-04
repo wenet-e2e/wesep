@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from contextlib import nullcontext
 
 import tableprint as tp
@@ -25,26 +24,27 @@ from wesep.utils.funcs import clip_gradients
 
 
 class Executor:
+
     def __init__(self):
         self.step = 0
 
     def train(
-        self,
-        dataloader,
-        models,
-        epoch_iter,
-        optimizers,
-        criterion,
-        schedulers,
-        scaler,
-        epoch,
-        enable_amp,
-        logger,
-        clip_grad=5.0,
-        log_batch_interval=100,
-        device=torch.device("cuda"),
-        se_loss_weight=1.0,
-        multi_task=False,
+            self,
+            dataloader,
+            models,
+            epoch_iter,
+            optimizers,
+            criterion,
+            schedulers,
+            scaler,
+            epoch,
+            enable_amp,
+            logger,
+            clip_grad=5.0,
+            log_batch_interval=100,
+            device=torch.device("cuda"),
+            se_loss_weight=1.0,
+            multi_task=False,
     ):
         """Train one epoch"""
         model = models[0]
@@ -65,12 +65,12 @@ class Executor:
             for i, batch in enumerate(dataloader):
                 features = batch["wav_mix"]
                 targets = batch["wav_targets"]
-                enroll = batch[
-                    "spk_embeds"
-                ]  # embeddings when not joint training, enrollment wavforms when joint training
-                spk_label = batch[
-                    "spk_label"
-                ]  # spk_lable is an empty list when not joint training and multi-task
+                # embeddings when not joint training, enrollment wavforms
+                # when joint training
+                enroll = batch["spk_embeds"]
+                # spk_lable is an empty list when not joint training
+                # and multi-task
+                spk_label = batch["spk_label"]
 
                 cur_iter = (epoch - 1) * epoch_iter + i
                 scheduler.step(cur_iter)
@@ -87,28 +87,20 @@ class Executor:
 
                     loss = 0
                     for ii in range(len(criterion)):
-                        for ji in range(
-                            len(se_loss_weight[0][ii])
-                        ):  # se_loss_weight: ([position in outputs[0], [1]], [weights:[1.0], [0.5]])
-                            if (
-                                multi_task
-                                and criterion[ii].__class__.__name__
-                                == "CrossEntropyLoss"
-                            ):
+                        # se_loss_weight: ([position in outputs[0], [1]],
+                        #                 [weights:[1.0], [0.5]])
+                        for ji in range(len(se_loss_weight[0][ii])):
+                            if (multi_task and criterion[ii].__class__.__name__
+                                    == "CrossEntropyLoss"):
                                 loss += se_loss_weight[1][ii][ji] * (
                                     criterion[ii](
                                         outputs[se_loss_weight[0][ii][ji]],
                                         spk_label,
-                                    ).mean()
-                                    / accum_grad
-                                )
+                                    ).mean() / accum_grad)
                                 continue
-                            loss += se_loss_weight[1][ii][ji] * (
-                                criterion[ii](
-                                    outputs[se_loss_weight[0][ii][ji]], targets
-                                ).mean()
-                                / accum_grad
-                            )
+                            loss += se_loss_weight[1][ii][ji] * (criterion[ii](
+                                outputs[se_loss_weight[0][ii][ji]],
+                                targets).mean() / accum_grad)
 
                 losses.append(loss.item())
                 total_loss_avg = sum(losses) / len(losses)
@@ -134,24 +126,23 @@ class Executor:
                             ),
                             width=10,
                             style="grid",
-                        )
-                    )
+                        ))
                 if (i + 1) == epoch_iter:
                     break
             total_loss_avg = sum(losses) / len(losses)
             return total_loss_avg, 0
 
     def cv(
-        self,
-        dataloader,
-        models,
-        val_iter,
-        criterion,
-        epoch,
-        enable_amp,
-        logger,
-        log_batch_interval=100,
-        device=torch.device("cuda"),
+            self,
+            dataloader,
+            models,
+            val_iter,
+            criterion,
+            epoch,
+            enable_amp,
+            logger,
+            log_batch_interval=100,
+            device=torch.device("cuda"),
     ):
         """Cross validation on"""
         model = models[0]
@@ -174,9 +165,9 @@ class Executor:
                     outputs = model(features, enroll)
                     if not isinstance(outputs, (list, tuple)):
                         outputs = [outputs]
-                    loss = criterion[0](
-                        outputs[0], targets
-                    ).mean()  ### By default, the first loss is used as the indicator of the validation set.
+                    # By default, the first loss is used as the indicator
+                    # of the validation set.
+                    loss = criterion[0](outputs[0], targets).mean()
 
                 losses.append(loss.item())
                 total_loss_avg = sum(losses) / len(losses)
@@ -187,8 +178,7 @@ class Executor:
                             ("VAL", epoch, i + 1, total_loss_avg, "-"),
                             width=10,
                             style="grid",
-                        )
-                    )
+                        ))
                 if (i + 1) == val_iter:
                     break
         return total_loss_avg, 0

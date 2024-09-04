@@ -11,7 +11,7 @@ def init_kernels(win_len, win_inc, fft_len, win_type=None, invers=False):
     """
 
     def sqrthann(win_len):
-        return get_window("hann", win_len, fftbins=True) ** 0.5
+        return get_window("hann", win_len, fftbins=True)**0.5
 
     if win_type == "None" or win_type is None:
         window = np.ones(win_len)
@@ -32,8 +32,7 @@ def init_kernels(win_len, win_inc, fft_len, win_type=None, invers=False):
     kernel = kernel * window
     kernel = kernel[:, None, :]
     return torch.from_numpy(kernel.astype(np.float32)), torch.from_numpy(
-        window[None, :, None].astype(np.float32)
-    )
+        window[None, :, None].astype(np.float32))
 
 
 class ConvSTFT(nn.Module):
@@ -48,8 +47,8 @@ class ConvSTFT(nn.Module):
     ):
         super(ConvSTFT, self).__init__()
 
-        if fft_len == None:
-            self.fft_len = np.int(2 ** np.ceil(np.log2(win_len)))
+        if fft_len is None:
+            self.fft_len = np.int(2**np.ceil(np.log2(win_len)))
         else:
             self.fft_len = fft_len
 
@@ -64,8 +63,7 @@ class ConvSTFT(nn.Module):
         if inputs.dim() == 2:
             inputs = torch.unsqueeze(inputs, 1)
         inputs = F.pad(
-            inputs, [self.win_len - self.stride, self.win_len - self.stride]
-        )
+            inputs, [self.win_len - self.stride, self.win_len - self.stride])
         outputs = F.conv1d(inputs, self.weight, stride=self.stride)
 
         if self.feature_type == "complex":
@@ -90,13 +88,15 @@ class ConviSTFT(nn.Module):
         feature_type="real",
     ):
         super(ConviSTFT, self).__init__()
-        if fft_len == None:
-            self.fft_len = np.int(2 ** np.ceil(np.log2(win_len)))
+        if fft_len is None:
+            self.fft_len = np.int(2**np.ceil(np.log2(win_len)))
         else:
             self.fft_len = fft_len
-        kernel, window = init_kernels(
-            win_len, win_inc, self.fft_len, win_type, invers=True
-        )
+        kernel, window = init_kernels(win_len,
+                                      win_inc,
+                                      self.fft_len,
+                                      win_type,
+                                      invers=True)
         self.register_buffer("weight", kernel)
         self.feature_type = feature_type
         self.win_type = win_type
@@ -120,12 +120,11 @@ class ConviSTFT(nn.Module):
         outputs = F.conv_transpose1d(inputs, self.weight, stride=self.stride)
 
         # this is from torch-stft: https://github.com/pseeth/torch-stft
-        t = self.window.repeat(1, 1, inputs.size(-1)) ** 2
+        t = self.window.repeat(1, 1, inputs.size(-1))**2
         coff = F.conv_transpose1d(t, self.enframe, stride=self.stride)
         outputs = outputs / (coff + 1e-8)
         # outputs = torch.where(coff == 0, outputs, outputs/coff)
-        outputs = outputs[
-            ..., self.win_len - self.stride : -(self.win_len - self.stride)
-        ]
+        outputs = outputs[..., self.win_len -
+                          self.stride:-(self.win_len - self.stride)]
 
         return outputs

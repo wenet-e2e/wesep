@@ -42,7 +42,7 @@ model_args:
     spk_emb_dim: 256
     use_spk_transform: False
     spk_fuse_type: "multiply"
-    joint_training: False  
+    joint_training: False
 
 
 model_init:

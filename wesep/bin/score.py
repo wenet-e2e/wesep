@@ -52,16 +52,14 @@ def scoring(
 
             if not Path(dnsmos_args["primary_model"]).exists():
                 raise ValueError(
-                    f"The primary model '{dnsmos_args['primary_model']}' doesn't exist."
+                    f"The primary model {dnsmos_args['primary_model']} doesn't exist."
                     " You can download the model from https://github.com/microsoft/"
-                    "DNS-Challenge/tree/master/DNSMOS/DNSMOS/sig_bak_ovr.onnx"
-                )
+                    "DNS-Challenge/tree/master/DNSMOS/DNSMOS/sig_bak_ovr.onnx")
             if not Path(dnsmos_args["p808_model"]).exists():
                 raise ValueError(
-                    f"The P808 model '{dnsmos_args['p808_model']}' doesn't exist."
+                    f"The P808 model {dnsmos_args['p808_model']} doesn't exist."
                     " You can download the model from https://github.com/microsoft/"
-                    "DNS-Challenge/tree/master/DNSMOS/DNSMOS/model_v8.onnx"
-                )
+                    "DNS-Challenge/tree/master/DNSMOS/DNSMOS/model_v8.onnx")
             dnsmos = DNSMOS_local(
                 dnsmos_args["primary_model"],
                 dnsmos_args["p808_model"],
@@ -92,8 +90,7 @@ def scoring(
             logging.warning("Using the PESQ package for evaluation")
         except ImportError:
             raise ImportError(
-                "Please install pesq and retry: pip install pesq"
-            )
+                "Please install pesq and retry: pip install pesq") from None
     else:
         pesq = None
 
@@ -148,14 +145,14 @@ def scoring(
 
             assert ref.shape == inf.shape, (ref.shape, inf.shape)
 
-            sdr, sir, sar, perm = bss_eval_sources(
-                ref, inf, compute_permutation=True
-            )
+            sdr, sir, sar, perm = bss_eval_sources(ref,
+                                                   inf,
+                                                   compute_permutation=True)
 
             for i in range(num_spk):
-                stoi_score = stoi(
-                    ref[i], inf[int(perm[i])], fs_sig=sample_rate
-                )
+                stoi_score = stoi(ref[i],
+                                  inf[int(perm[i])],
+                                  fs_sig=sample_rate)
                 estoi_score = stoi(
                     ref[i],
                     inf[int(perm[i])],
@@ -173,8 +170,7 @@ def scoring(
                     writer[f"SIG_spk{i + 1}"][key] = str(dnsmos_score["SIG"])
                     writer[f"BAK_spk{i + 1}"][key] = str(dnsmos_score["BAK"])
                     writer[f"P808_MOS_spk{i + 1}"][key] = str(
-                        dnsmos_score["P808_MOS"]
-                    )
+                        dnsmos_score["P808_MOS"])
                 if pesq:
                     if sample_rate == 8000:
                         mode = "nb"
@@ -183,8 +179,7 @@ def scoring(
                     else:
                         raise ValueError(
                             "sample rate must be 8000 or 16000 for PESQ evaluation, "
-                            f"but got {sample_rate}"
-                        )
+                            f"but got {sample_rate}")
                     pesq_score = pesq(
                         sample_rate,
                         ref[i],
@@ -195,15 +190,12 @@ def scoring(
                     if pesq_score == PesqError.NO_UTTERANCES_DETECTED:
                         logging.warning(
                             f"[PESQ] Error: No utterances detected for {key}. "
-                            "Skipping this utterance."
-                        )
+                            "Skipping this utterance.")
                     else:
                         writer[f"PESQ_{mode.upper()}_spk{i + 1}"][key] = str(
-                            pesq_score
-                        )
-                writer[f"STOI_spk{i + 1}"][key] = str(
-                    stoi_score * 100
-                )  # in percentage
+                            pesq_score)
+                writer[f"STOI_spk{i + 1}"][key] = str(stoi_score *
+                                                      100)  # in percentage
                 writer[f"ESTOI_spk{i + 1}"][key] = str(estoi_score * 100)
                 writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
@@ -213,17 +205,14 @@ def scoring(
                 if i < len(ref_scp):
                     if inf_audio_format == "sound":
                         writer[f"wav_spk{i + 1}"][key] = inf_readers[
-                            perm[i]
-                        ].data[key]
+                            perm[i]].data[key]
                     elif inf_audio_format == "kaldi_ark":
                         # NOTE: SegmentsExtractor is not supported
                         writer[f"wav_spk{i + 1}"][key] = inf_readers[
-                            perm[i]
-                        ].loader._dict[key]
+                            perm[i]].loader._dict[key]
                     else:
                         raise ValueError(
-                            f"Unknown audio format: {inf_audio_format}"
-                        )
+                            f"Unknown audio format: {inf_audio_format}")
 
 
 def get_parser():
@@ -295,24 +284,22 @@ def get_parser():
         default=False,
         help="used when dnsmsos_mode='local'",
     )
-    group.add_argument(
-        "--dnsmos_primary_model",
-        type=str,
-        default="./DNSMOS/sig_bak_ovr.onnx",
-        help="Path to the primary DNSMOS model. Required if dnsmsos_mode='local'",
-    )
+    group.add_argument("--dnsmos_primary_model",
+                       type=str,
+                       default="./DNSMOS/sig_bak_ovr.onnx",
+                       help="Path to the primary DNSMOS model. "
+                       "Required if dnsmsos_mode='local'")
     group.add_argument(
         "--dnsmos_p808_model",
         type=str,
         default="./DNSMOS/model_v8.onnx",
         help="Path to the p808 model. Required if dnsmsos_mode='local'",
     )
-    group.add_argument(
-        "--dnsmos_gpu_device",
-        type=int,
-        default=None,
-        help="gpu device to use for DNSMOS evaluation. Used when dnsmsos_mode='local'",
-    )
+    group.add_argument("--dnsmos_gpu_device",
+                       type=int,
+                       default=None,
+                       help="gpu device to use for DNSMOS evaluation. "
+                       "Used when dnsmsos_mode='local'")
 
     group = parser.add_argument_group("PESQ related")
     group.add_argument(

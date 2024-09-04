@@ -26,6 +26,7 @@ from wesep.utils.score import batch_evaluation, cal_PESQ_norm
 
 
 class ExecutorGAN:
+
     def __init__(self):
         self.step = 0
 
@@ -49,9 +50,8 @@ class ExecutorGAN:
         multi_task=False,
     ):
         """Train one epoch"""
-        assert (
-            len(models) == len(optimizers) == len(schedulers) == 2
-        ), "Currently only support one discriminator"
+        assert (len(models) == len(optimizers) == len(schedulers) ==
+                2), "Currently only support one discriminator"
         model, discriminator = models
         optimizer, optimizer_dis = optimizers
         scheduler, scheduler_dis = schedulers
@@ -73,12 +73,12 @@ class ExecutorGAN:
             for i, batch in enumerate(dataloader):
                 features = batch["wav_mix"]
                 targets = batch["wav_targets"]
-                enroll = batch[
-                    "spk_embeds"
-                ]  # embeddings when when not joint training, enrollment wavforms when joint training
-                spk_label = batch[
-                    "spk_label"
-                ]  # spk_lable is an empty list when not joint training and multi-task
+                # embeddings when when not joint training, enrollment
+                # wavforms when joint training
+                enroll = batch["spk_embeds"]
+                # spk_lable is an empty list when not joint training
+                # and multi-task
+                spk_label = batch["spk_label"]
                 one_labels = torch.ones(features.size(0))
 
                 cur_iter = (epoch - 1) * epoch_iter + i
@@ -96,12 +96,14 @@ class ExecutorGAN:
                     outputs = model(features, enroll)
                     if not isinstance(outputs, (list, tuple)):
                         outputs = [outputs]
-                    # outputs is a list of tensors, each tensor has shape (Batch, samples)
+                    # outputs is a list of tensors, each tensor has shape
+                    # (Batch, samples)
                     if multi_task:
                         # remove the predicted spk_label from the outputs list
                         enhanced_wavs = torch.stack(outputs[:-1], dim=0)
                     else:
-                        # enhanced_wavs: [N, Batch, samples], N is the number of output of the model
+                        # enhanced_wavs: [N, Batch, samples], N is the number
+                        # of output of the model
                         enhanced_wavs = torch.stack(outputs, dim=0)
                     d_loss = self._calculate_discriminator_loss(
                         discriminator,
@@ -125,32 +127,26 @@ class ExecutorGAN:
                 with torch.cuda.amp.autocast(enabled=enable_amp):
                     se_loss = 0
                     for ii in range(len(criterion)):
-                        for ji in range(
-                            len(se_loss_weight[0][ii])
-                        ):  # se_loss_weight[0]: 2-D array,loss_posi; se_loss_weight[1]: 2-D array,loss_weight.
+                        # se_loss_weight[0]: 2-D array,loss_posi;
+                        # se_loss_weight[1]: 2-D array,loss_weight.
+                        for ji in range(len(se_loss_weight[0][ii])):
                             if multi_task and ii == (len(criterion) - 1):
                                 se_loss += se_loss_weight[1][ii][ji] * (
                                     criterion[ii](
                                         outputs[se_loss_weight[0][ii][ji]],
                                         spk_label,
-                                    ).mean()
-                                    / accum_grad
-                                )
+                                    ).mean() / accum_grad)
                                 continue
                             se_loss += se_loss_weight[1][ii][ji] * (
-                                criterion[ii](
-                                    outputs[se_loss_weight[0][ii][ji]], targets
-                                ).mean()
-                                / accum_grad
-                            )
+                                criterion[ii]
+                                (outputs[se_loss_weight[0][ii][ji]],
+                                 targets).mean() / accum_grad)
                     gan_loss = 0
-                    len_output = (
-                        len(outputs) - 1 if multi_task else len(outputs)
-                    )
+                    len_output = (len(outputs) -
+                                  1 if multi_task else len(outputs))
                     for j in range(len_output):
                         enhanced_fake_metric = discriminator(
-                            targets, outputs[j]
-                        )
+                            targets, outputs[j])
                         gan_loss += F.mse_loss(
                             enhanced_fake_metric.flatten(),
                             one_labels,
@@ -185,8 +181,7 @@ class ExecutorGAN:
                             ),
                             width=10,
                             style="grid",
-                        )
-                    )
+                        ))
                 if (i + 1) == epoch_iter:
                     break
             total_loss_avg = sum(losses) / len(losses)
@@ -194,16 +189,16 @@ class ExecutorGAN:
             return total_loss_avg, total_dis_loss_avg
 
     def cv(
-        self,
-        dataloader,
-        models,
-        val_iter,
-        criterion,
-        epoch,
-        enable_amp,
-        logger,
-        log_batch_interval=100,
-        device=torch.device("cuda"),
+            self,
+            dataloader,
+            models,
+            val_iter,
+            criterion,
+            epoch,
+            enable_amp,
+            logger,
+            log_batch_interval=100,
+            device=torch.device("cuda"),
     ):
         """Cross validation on"""
         assert len(models) == 2, "Currently only support one discriminator"
@@ -271,8 +266,7 @@ class ExecutorGAN:
                             ),
                             width=10,
                             style="grid",
-                        )
-                    )
+                        ))
                 if (i + 1) == val_iter:
                     break
         return total_loss_avg, total_dis_loss_avg
@@ -292,7 +286,8 @@ class ExecutorGAN:
         Args:
             discriminator (torch.nn.Module): the discriminator model
             clean_wavs (torch.Tensor): the clean waveforms, [Batch, samples]
-            enhanced_wavs (torch.Tensor): the predicted waveforms, [N, Batch, samples]
+            enhanced_wavs (torch.Tensor): the predicted waveforms,
+                                          [N, Batch, samples]
             noisy_wavs (torch.Tensor): the noisy waveforms, [Batch, samples]
 
         Returns:
@@ -314,28 +309,30 @@ class ExecutorGAN:
         audio_ref = clean_wavs.detach().cpu().numpy()
         audio_noisy = noisy_wavs.detach().cpu().numpy()
 
-        noisy_real_metric = batch_evaluation(
-            cal_PESQ_norm, audio_noisy, audio_ref, parallel=False
-        )
+        noisy_real_metric = batch_evaluation(cal_PESQ_norm,
+                                             audio_noisy,
+                                             audio_ref,
+                                             parallel=False)
 
         loss_d_clean = self.mse_loss(clean_fake_metric, one_labels)
         loss_d_noisy = calculate_mse_loss(noisy_fake_metric, noisy_real_metric)
         d_loss = loss_d_clean + loss_d_noisy
 
-        # unbind enhanced_wavs to get a list of tensors, each tensor has shape (Batch, samples)
+        # unbind enhanced_wavs to get a list of tensors,
+        # each tensor has shape (Batch, samples)
         enhanced_wavs = torch.unbind(enhanced_wavs, dim=0)
 
         for enhanced_wav in enhanced_wavs:
             enhanced_fake_metric = discriminator(clean_wavs, enhanced_wav)
             audio_est = enhanced_wav.detach().cpu().numpy()
 
-            enhanced_real_metric = batch_evaluation(
-                cal_PESQ_norm, audio_est, audio_ref, parallel=False
-            )
+            enhanced_real_metric = batch_evaluation(cal_PESQ_norm,
+                                                    audio_est,
+                                                    audio_ref,
+                                                    parallel=False)
 
-            loss_d_enhanced = calculate_mse_loss(
-                enhanced_fake_metric, enhanced_real_metric
-            )
+            loss_d_enhanced = calculate_mse_loss(enhanced_fake_metric,
+                                                 enhanced_real_metric)
 
             d_loss += loss_d_enhanced
 

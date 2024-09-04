@@ -22,12 +22,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <vector>
 #include <memory>
 #include <string>
+#include <vector>
 
-#include "glog/logging.h"
 #include "gflags/gflags.h"
+#include "glog/logging.h"
 
 DEFINE_int32(pcm_sample_rate, 16000, "pcm data sample rate");
 
@@ -246,7 +246,7 @@ void WriteWavFile(const float* data, int data_size, int sample_rate,
                   const std::string& wav_path) {
   std::vector<float> tmp_wav(data, data + data_size);
   for (int i = 0; i < tmp_wav.size(); i++) {
-    tmp_wav[i] *= (1<<15);
+    tmp_wav[i] *= (1 << 15);
   }
   WavWriter wav_write(tmp_wav.data(), tmp_wav.size(), 1, sample_rate, 16);
   wav_write.Write(wav_path);

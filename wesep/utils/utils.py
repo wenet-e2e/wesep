@@ -34,8 +34,7 @@ def str2bool(value: str) -> bool:
 
 def get_logger(outdir, fname):
     formatter = logging.Formatter(
-        "[ %(levelname)s : %(asctime)s ] - %(message)s"
-    )
+        "[ %(levelname)s : %(asctime)s ] - %(message)s")
     logging.basicConfig(
         level=logging.DEBUG,
         format="[ %(levelname)s : %(asctime)s ] - %(message)s",
@@ -131,7 +130,7 @@ def generate_enahnced_scp(directory: str, extension: str = "wav"):
             prefix = "s1" if curr_spk == spk1_id else "s2"
             f_dash_index = ori_filename.find("-")
             l_dash_index = ori_filename.rfind("-")
-            filename = ori_filename[f_dash_index + 1 : l_dash_index]
+            filename = ori_filename[f_dash_index + 1:l_dash_index]
             final_filename = prefix + "/" + filename + ".wav"
             line = final_filename + " " + path
             f.write(line + "\n")
@@ -164,14 +163,10 @@ def get_commandline_args():
     ]
 
     # Escape the extra characters for shell
-    argv = [
-        (
-            arg.replace("'", "'\\''")
-            if all(char not in arg for char in extra_chars)
-            else "'" + arg.replace("'", "'\\''") + "'"
-        )
-        for arg in sys.argv
-    ]
+    argv = [(arg.replace("'", "'\\''") if all(
+        char not in arg
+        for char in extra_chars) else "'" + arg.replace("'", "'\\''") + "'")
+        for arg in sys.argv]
 
     return sys.executable + " " + " ".join(argv)
 
@@ -213,12 +208,12 @@ class ArgumentParser(argparse.ArgumentParser):
                         break
                 else:
                     self.error(
-                        f"unrecognized arguments: {key} (from {_args.config})"
-                    )
+                        f"unrecognized arguments: {key} (from {_args.config})")
 
             # NOTE(kamo): Ignore "--config" from a config file
-            # NOTE(kamo): Unlike "configargparse", this module doesn't check type.
-            #   i.e. We can set any type value regardless of argument type.
+            # NOTE(kamo): Unlike "configargparse", this module doesn't
+            #             check type. i.e. We can set any type value
+            #             regardless of argument type.
             self.set_defaults(**d)
         return super().parse_known_args(args, namespace)
 
@@ -229,34 +224,31 @@ def get_layer(l_name, library=torch.nn):
     E.g. if l_name=="elu", returns torch.nn.ELU.
 
     Args:
-        l_name (string): Case insensitive name for layer in library (e.g. .'elu').
-        library (module): Name of library/module where to search for object handler
-        with l_name e.g. "torch.nn".
+        l_name (string): Case insensitive name for layer in library
+                        (e.g. .'elu').
+        library (module): Name of library/module where to search for
+                          object handler with l_name e.g. "torch.nn".
 
     Returns:
-        layer_handler (object): handler for the requested layer e.g. (torch.nn.ELU)
+        layer_handler (object): handler for the requested layer
+                                e.g. (torch.nn.ELU)
 
     """
 
-    all_torch_layers = [x for x in dir(torch.nn)]
+    all_torch_layers = list(dir(torch.nn))
     match = [x for x in all_torch_layers if l_name.lower() == x.lower()]
     if len(match) == 0:
         close_matches = difflib.get_close_matches(
-            l_name, [x.lower() for x in all_torch_layers]
-        )
+            l_name, [x.lower() for x in all_torch_layers])
         raise NotImplementedError(
             "Layer with name {} not found in {}.\n Closest matches: {}".format(
-                l_name, str(library), close_matches
-            )
-        )
+                l_name, str(library), close_matches))
     elif len(match) > 1:
         close_matches = difflib.get_close_matches(
-            l_name, [x.lower() for x in all_torch_layers]
-        )
+            l_name, [x.lower() for x in all_torch_layers])
         raise NotImplementedError(
             "Multiple matchs for layer with name {} not found in {}.\n "
-            "All matches: {}".format(l_name, str(library), close_matches)
-        )
+            "All matches: {}".format(l_name, str(library), close_matches))
     else:
         # valid
         layer_handler = getattr(library, match[0])

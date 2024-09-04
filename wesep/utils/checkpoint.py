@@ -5,9 +5,9 @@ import torch
 from wesep.utils.schedulers import BaseClass
 
 
-def load_pretrained_model(
-    model: torch.nn.Module, path: str, type: str = "generator"
-):
+def load_pretrained_model(model: torch.nn.Module,
+                          path: str,
+                          type: str = "generator"):
     assert type in ["generator", "discriminator"]
     states = torch.load(
         path,
@@ -93,12 +93,13 @@ def save_checkpoint(
         state_dict = [model.state_dict() for model in models]
     torch.save(
         {
-            "models": state_dict,
+            "models":
+            state_dict,
             "optimizers": [o.state_dict() for o in optimizers],
-            "schedulers": [
-                s.state_dict() if s is not None else None for s in schedulers
-            ],
-            "scaler": scaler.state_dict() if scaler is not None else None,
+            "schedulers":
+            [s.state_dict() if s is not None else None for s in schedulers],
+            "scaler":
+            scaler.state_dict() if scaler is not None else None,
         },
         path,
     )

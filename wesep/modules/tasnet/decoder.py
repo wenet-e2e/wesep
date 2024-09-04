@@ -5,28 +5,43 @@ from wesep.modules.tasnet.convs import Conv1D, ConvTrans1D
 
 
 class DeepDecoder(nn.Module):
+
     def __init__(self, N, kernel_size=16, stride=16 // 2):
         super(DeepDecoder, self).__init__()
         self.sequential = nn.Sequential(
-            nn.ConvTranspose1d(
-                N, N, kernel_size=3, stride=1, dilation=8, padding=8
-            ),
+            nn.ConvTranspose1d(N,
+                               N,
+                               kernel_size=3,
+                               stride=1,
+                               dilation=8,
+                               padding=8),
             nn.PReLU(),
-            nn.ConvTranspose1d(
-                N, N, kernel_size=3, stride=1, dilation=4, padding=4
-            ),
+            nn.ConvTranspose1d(N,
+                               N,
+                               kernel_size=3,
+                               stride=1,
+                               dilation=4,
+                               padding=4),
             nn.PReLU(),
-            nn.ConvTranspose1d(
-                N, N, kernel_size=3, stride=1, dilation=2, padding=2
-            ),
+            nn.ConvTranspose1d(N,
+                               N,
+                               kernel_size=3,
+                               stride=1,
+                               dilation=2,
+                               padding=2),
             nn.PReLU(),
-            nn.ConvTranspose1d(
-                N, N, kernel_size=3, stride=1, dilation=1, padding=1
-            ),
+            nn.ConvTranspose1d(N,
+                               N,
+                               kernel_size=3,
+                               stride=1,
+                               dilation=1,
+                               padding=1),
             nn.PReLU(),
-            nn.ConvTranspose1d(
-                N, 1, kernel_size=kernel_size, stride=stride, bias=True
-            ),
+            nn.ConvTranspose1d(N,
+                               1,
+                               kernel_size=kernel_size,
+                               stride=stride,
+                               bias=True),
         )
 
     def forward(self, x):
@@ -44,9 +59,8 @@ class DeepDecoder(nn.Module):
 
 class MultiDecoder(nn.Module):
 
-    def __init__(
-        self, in_channels, middle_channels, out_channels, kernel_size, stride
-    ):
+    def __init__(self, in_channels, middle_channels, out_channels, kernel_size,
+                 stride):
         super(MultiDecoder, self).__init__()
 
         B = in_channels
@@ -59,15 +73,21 @@ class MultiDecoder(nn.Module):
 
         # using ConvTrans1D: n x N x T => n x 1 x To
         # To = (T - 1) * L // 2 + L
-        self.decoder_1d_1 = ConvTrans1D(
-            N, out_channels, kernel_size=L, stride=stride, bias=True
-        )
-        self.decoder_1d_2 = ConvTrans1D(
-            N, out_channels, kernel_size=80, stride=stride, bias=True
-        )
-        self.decoder_1d_3 = ConvTrans1D(
-            N, out_channels, kernel_size=160, stride=stride, bias=True
-        )
+        self.decoder_1d_1 = ConvTrans1D(N,
+                                        out_channels,
+                                        kernel_size=L,
+                                        stride=stride,
+                                        bias=True)
+        self.decoder_1d_2 = ConvTrans1D(N,
+                                        out_channels,
+                                        kernel_size=80,
+                                        stride=stride,
+                                        bias=True)
+        self.decoder_1d_3 = ConvTrans1D(N,
+                                        out_channels,
+                                        kernel_size=160,
+                                        stride=stride,
+                                        bias=True)
 
     def forward(self, x, w1, w2, w3, actLayer):
         """

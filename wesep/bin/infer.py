@@ -33,17 +33,13 @@ def infer(config="confs/conf.yaml", **kwargs):
 
     configs = parse_config_or_kwargs(config, **kwargs)
     sign_save_wav = configs.get(
-        "save_wav", True
-    )  # Control if save the extracted speech as .wav
+        "save_wav", True)  # Control if save the extracted speech as .wav
 
     rank = 0
     set_seed(configs["seed"] + rank)
     gpu = configs["gpus"]
-    device = (
-        torch.device("cuda:{}".format(gpu))
-        if gpu >= 0
-        else torch.device("cpu")
-    )
+    device = (torch.device("cuda:{}".format(gpu))
+              if gpu >= 0 else torch.device("cpu"))
 
     sample_rate = configs.get("fs", None)
     if sample_rate is None or sample_rate == "16k":
@@ -51,9 +47,8 @@ def infer(config="confs/conf.yaml", **kwargs):
     else:
         sample_rate = 8000
 
-    model = get_model(configs["model"]["tse_model"])(
-        **configs["model_args"]["tse_model"]
-    )
+    model = get_model(
+        configs["model"]["tse_model"])(**configs["model_args"]["tse_model"])
     model_path = os.path.join(configs["checkpoint"])
     load_pretrained_model(model, model_path)
 
@@ -64,11 +59,11 @@ def infer(config="confs/conf.yaml", **kwargs):
         if not os.path.exists(save_audio_dir):
             try:
                 os.makedirs(save_audio_dir)
-                print(f"Directory '{save_audio_dir}' created successfully.")
+                print(f"Directory {save_audio_dir} created successfully.")
             except OSError as e:
-                print(f"Error creating directory '{save_audio_dir}': {e}")
+                print(f"Error creating directory {save_audio_dir}: {e}")
         else:
-            print(f"Directory '{save_audio_dir}' already exists.")
+            print(f"Directory {save_audio_dir} already exists.")
     else:
         print("Do NOT save the results in wav.")
 
@@ -79,8 +74,7 @@ def infer(config="confs/conf.yaml", **kwargs):
     test_spk1_embed_scp = configs["test_spk1_enroll"]
     test_spk2_embed_scp = configs["test_spk2_enroll"]
     joint_training = configs["model_args"]["tse_model"].get(
-        "joint_training", None
-    )
+        "joint_training", None)
     if not joint_training and test_spk_embeds:
         test_spk2embed_dict = read_vec_scp_file(test_spk_embeds)
     else:
@@ -103,9 +97,9 @@ def infer(config="confs/conf.yaml", **kwargs):
         whole_utt=configs.get("whole_utt", True),
         repeat_dataset=configs.get("repeat_dataset", False),
     )
-    test_dataloader = DataLoader(
-        test_dataset, batch_size=1, collate_fn=tse_collate_fn_2spk
-    )
+    test_dataloader = DataLoader(test_dataset,
+                                 batch_size=1,
+                                 collate_fn=tse_collate_fn_2spk)
     test_iter = lines // 2
     logger.info("test number: {}".format(test_iter))
 
@@ -126,11 +120,9 @@ def infer(config="confs/conf.yaml", **kwargs):
                 outputs = outputs[0]
 
             if torch.min(outputs.max(dim=1).values) > 0:
-                outputs = (
-                    (outputs / abs(outputs).max(dim=1, keepdim=True)[0] * 0.9)
-                    .cpu()
-                    .numpy()
-                )
+                outputs = ((outputs /
+                            abs(outputs).max(dim=1, keepdim=True)[0] *
+                            0.9).cpu().numpy())
             else:
                 outputs = outputs.cpu().numpy()
 
@@ -160,10 +152,8 @@ def infer(config="confs/conf.yaml", **kwargs):
                 SISNR1, delta1 = cal_SISNRi(ests[0], ref[0], mix[0])
 
             logger.info(
-                "Num={} | Utt={} | Target speaker={} | SI-SNR={:.2f} | SI-SNRi={:.2f}".format(
-                    total_cnt + 1, key[0], spk[0], SISNR1, delta1
-                )
-            )
+                "Num={} | Utt={} | Target speaker={} | SI-SNR={:.2f} | SI-SNRi={:.2f}"
+                .format(total_cnt + 1, key[0], spk[0], SISNR1, delta1))
             total_SISNR += SISNR1
             total_SISNRi += delta1
             total_cnt += 1
@@ -179,10 +169,8 @@ def infer(config="confs/conf.yaml", **kwargs):
             else:
                 SISNR2, delta2 = cal_SISNRi(ests[1], ref[1], mix[1])
             logger.info(
-                "Num={} | Utt={} | Target speaker={} | SI-SNR={:.2f} | SI-SNRi={:.2f}".format(
-                    total_cnt + 1, key[1], spk[1], SISNR2, delta2
-                )
-            )
+                "Num={} | Utt={} | Target speaker={} | SI-SNR={:.2f} | SI-SNRi={:.2f}"
+                .format(total_cnt + 1, key[1], spk[1], SISNR2, delta2))
             total_SISNR += SISNR2
             total_SISNRi += delta2
             total_cnt += 1
@@ -201,9 +189,7 @@ def infer(config="confs/conf.yaml", **kwargs):
     logger.info("Average SI-SNRi: {:.2f}".format(total_SISNRi / total_cnt))
     logger.info(
         "Acceptance rate of Utterances with SI-SDRi > 1 dB: {:.2f}".format(
-            accept_cnt / total_cnt * 100
-        )
-    )
+            accept_cnt / total_cnt * 100))
 
 
 if __name__ == "__main__":

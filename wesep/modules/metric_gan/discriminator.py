@@ -4,6 +4,7 @@ import torch.nn as nn
 
 # utility functions/classes used in the implementation of discriminators.
 class LearnableSigmoid(nn.Module):
+
     def __init__(self, in_features, beta=1):
         super().__init__()
         self.beta = beta
@@ -16,18 +17,19 @@ class LearnableSigmoid(nn.Module):
 
 # discriminators
 class CMGAN_Discriminator(nn.Module):
+
     def __init__(
-        self,
-        n_fft=400,
-        hop=100,
-        in_channels=2,
-        hid_chans=16,
-        ksz=(4, 4),
-        stride=(2, 2),
-        padding=(1, 1),
-        bias=False,
-        num_conv_blocks=4,
-        num_linear_layers=2,
+            self,
+            n_fft=400,
+            hop=100,
+            in_channels=2,
+            hid_chans=16,
+            ksz=(4, 4),
+            stride=(2, 2),
+            padding=(1, 1),
+            bias=False,
+            num_conv_blocks=4,
+            num_linear_layers=2,
     ):
         """discriminator used in CMGAN (Interspeech 2022)
             paper: https://arxiv.org/pdf/2203.15149.pdf
@@ -67,14 +69,12 @@ class CMGAN_Discriminator(nn.Module):
                             stride,
                             padding,
                             bias=bias,
-                        )
-                    ),
+                        )),
                     nn.InstanceNorm2d(out_chans, affine=True),
                     nn.PReLU(out_chans),
-                )
-            )
+                ))
             in_chans = out_chans
-            out_chans = hid_chans * (2 ** (i + 1))
+            out_chans = hid_chans * (2**(i + 1))
 
         self.pooling = nn.Sequential(
             nn.AdaptiveMaxPool2d(1),
@@ -87,26 +87,21 @@ class CMGAN_Discriminator(nn.Module):
                 nn.Sequential(
                     nn.utils.spectral_norm(
                         nn.Linear(
-                            hid_chans * (2 ** (num_conv_blocks - 1 - i)),
-                            hid_chans * (2 ** (num_conv_blocks - 2 - i)),
-                        )
-                    ),
+                            hid_chans * (2**(num_conv_blocks - 1 - i)),
+                            hid_chans * (2**(num_conv_blocks - 2 - i)),
+                        )),
                     nn.Dropout(0.3),
-                    nn.PReLU(hid_chans * (2 ** (num_conv_blocks - 2 - i))),
-                )
-            )
+                    nn.PReLU(hid_chans * (2**(num_conv_blocks - 2 - i))),
+                ))
         self.fc.append(
             nn.Sequential(
                 nn.utils.spectral_norm(
                     nn.Linear(
-                        hid_chans
-                        * (2 ** (num_conv_blocks - num_linear_layers)),
+                        hid_chans * (2**(num_conv_blocks - num_linear_layers)),
                         1,
-                    )
-                ),
+                    )),
                 LearnableSigmoid(1),
-            )
-        )
+            ))
 
     def forward(self, ref_wav, est_wav):
         """
@@ -122,18 +117,16 @@ class CMGAN_Discriminator(nn.Module):
             ref_wav,
             self.n_fft,
             self.hop,
-            window=torch.hann_window(self.n_fft)
-            .to(ref_wav.device)
-            .type(ref_wav.type()),
+            window=torch.hann_window(self.n_fft).to(ref_wav.device).type(
+                ref_wav.type()),
             return_complex=True,
         ).transpose(-1, -2)
         est_spec = torch.stft(
             est_wav,
             self.n_fft,
             self.hop,
-            window=torch.hann_window(self.n_fft)
-            .to(est_wav.device)
-            .type(est_wav.type()),
+            window=torch.hann_window(self.n_fft).to(est_wav.device).type(
+                est_wav.type()),
             return_complex=True,
         ).transpose(-1, -2)
         # input shape: (B, 2, T, F)

@@ -24,6 +24,7 @@ from wesep.utils.file_utils import read_lists
 
 
 class Processor(IterableDataset):
+
     def __init__(self, source, f, *args, **kw):
         assert callable(f)
         self.source = source
@@ -48,6 +49,7 @@ class Processor(IterableDataset):
 
 
 class DistributedSampler:
+
     def __init__(self, shuffle=True, partition=True):
         self.epoch = -1
         self.update()
@@ -96,15 +98,18 @@ class DistributedSampler:
             if self.partition:
                 if self.shuffle:
                     random.Random(self.epoch).shuffle(data)
-                data = data[self.rank :: self.world_size]
-            data = data[self.worker_id :: self.num_workers]
+                data = data[self.rank::self.world_size]
+            data = data[self.worker_id::self.num_workers]
         return data
 
 
 class DataList(IterableDataset):
-    def __init__(
-        self, lists, shuffle=True, partition=True, repeat_dataset=False
-    ):
+
+    def __init__(self,
+                 lists,
+                 shuffle=True,
+                 partition=True,
+                 repeat_dataset=False):
         self.lists = lists
         self.repeat_dataset = repeat_dataset
         self.sampler = DistributedSampler(shuffle, partition)
@@ -132,7 +137,8 @@ class DataList(IterableDataset):
 
 
 def tse_collate_fn_2spk(batch, mode="min"):
-    # Warning: hard-coded for 2 speakers, will be deprecated in the future, use tse_collate_fn instead
+    # Warning: hard-coded for 2 speakers, will be deprecated in the future,
+    # use tse_collate_fn instead
     new_batch = {}
 
     wav_mix = []
@@ -215,8 +221,7 @@ def tse_collate_fn(batch, mode="min"):
             spk.append(s["spk{}".format(i + 1)])
             key.append(s["key"])
             spk_embeds.append(
-                torch.from_numpy(s["embed_spk{}".format(i + 1)].copy())
-            )
+                torch.from_numpy(s["embed_spk{}".format(i + 1)].copy()))
             length_spk_embeds.append(spk_embeds[-1].shape[1])
             if "spk{}_label".format(i + 1) in s.keys():
                 spk_label.append(s["spk{}_label".format(i + 1)])
@@ -251,7 +256,7 @@ def tse_collate_fn(batch, mode="min"):
     new_batch["wav_targets"] = torch.concat(wav_targets)
     new_batch["spk_embeds"] = torch.concat(spk_embeds)
     new_batch["length_spk_embeds"] = (
-        length_spk_embeds  # Not used, but maybe needed when using the enrollment utterance
+        length_spk_embeds  # Not used, but maybe needed when using the enrollment utterance  # noqa
     )
     new_batch["spk"] = spk
     new_batch["key"] = key
@@ -295,7 +300,7 @@ def Dataset(
         :param reverb_prob:probility to add reverb on mixture
         :param noise_enroll_prob:probility to add noise on enrollment speech
         :param reverb_enroll_prob:probility to add reverb on enrollment speech
-        :param specaug_enroll_prob: probility to apply SpecAug on fbank of enrollment speech
+        :param specaug_enroll_prob: probility to apply SpecAug on fbank of enrollment speech  # noqa
         :param noise_lmdb_file: noise data source lmdb file
         :param whole_utt: use whole utt or random chunk
         :param repeat_dataset:
@@ -310,9 +315,8 @@ def Dataset(
         if not online_mix:
             dataset = Processor(dataset, processor.tar_file_and_group)
         else:
-            dataset = Processor(
-                dataset, processor.tar_file_and_group_single_spk
-            )
+            dataset = Processor(dataset,
+                                processor.tar_file_and_group_single_spk)
     else:
         dataset = Processor(dataset, processor.parse_raw)
 
@@ -322,9 +326,8 @@ def Dataset(
         dataset = Processor(dataset, processor.filter_len, **filter_conf)
     # Local shuffle
     if shuffle and not online_mix:
-        dataset = Processor(
-            dataset, processor.shuffle, **configs["shuffle_args"]
-        )
+        dataset = Processor(dataset, processor.shuffle,
+                            **configs["shuffle_args"])
 
     # resample
     resample_rate = configs.get("resample_rate", 16000)
@@ -351,23 +354,19 @@ def Dataset(
         )
     if noise_prob > 0:
         assert noise_lmdb_file is not None
-        dataset = Processor(
-            dataset, processor.add_noise, noise_lmdb_file, noise_prob
-        )
+        dataset = Processor(dataset, processor.add_noise, noise_lmdb_file,
+                            noise_prob)
     speaker_feat = configs.get("speaker_feat", False)
     if state == "train":
         if not joint_training:
-            dataset = Processor(
-                dataset, processor.sample_spk_embedding, spk2embed_dict
-            )
+            dataset = Processor(dataset, processor.sample_spk_embedding,
+                                spk2embed_dict)
         else:
-            dataset = Processor(
-                dataset, processor.sample_enrollment, spk2embed_dict, dict_spk
-            )
+            dataset = Processor(dataset, processor.sample_enrollment,
+                                spk2embed_dict, dict_spk)
             if reverb_enroll_prob > 0:
-                dataset = Processor(
-                    dataset, processor.add_reverb_on_enroll, reverb_enroll_prob
-                )
+                dataset = Processor(dataset, processor.add_reverb_on_enroll,
+                                    reverb_enroll_prob)
             if noise_enroll_prob > 0:
                 assert noise_lmdb_file is not None
                 dataset = Processor(
@@ -377,14 +376,13 @@ def Dataset(
                     noise_enroll_prob,
                 )
             if speaker_feat:
-                dataset = Processor(
-                    dataset, processor.compute_fbank, **configs["fbank_args"]
-                )
+                dataset = Processor(dataset, processor.compute_fbank,
+                                    **configs["fbank_args"])
                 dataset = Processor(dataset, processor.apply_cmvn)
                 if specaug_enroll_prob > 0:
-                    dataset = Processor(
-                        dataset, processor.spec_aug, prob=specaug_enroll_prob
-                    )
+                    dataset = Processor(dataset,
+                                        processor.spec_aug,
+                                        prob=specaug_enroll_prob)
     else:
         if not joint_training:
             dataset = Processor(
@@ -404,9 +402,8 @@ def Dataset(
                 dict_spk,
             )
             if speaker_feat:
-                dataset = Processor(
-                    dataset, processor.compute_fbank, **configs["fbank_args"]
-                )
+                dataset = Processor(dataset, processor.compute_fbank,
+                                    **configs["fbank_args"])
                 dataset = Processor(dataset, processor.apply_cmvn)
 
     return dataset

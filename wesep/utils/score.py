@@ -16,10 +16,9 @@ def cal_SISNR(est, ref, eps=1e-8):
     est_zm = est - np.mean(est)
     ref_zm = ref - np.mean(ref)
 
-    t = np.sum(est_zm * ref_zm) * ref_zm / (np.linalg.norm(ref_zm) ** 2 + eps)
-    return 20 * np.log10(
-        eps + np.linalg.norm(t) / (np.linalg.norm(est_zm - t) + eps)
-    )
+    t = np.sum(est_zm * ref_zm) * ref_zm / (np.linalg.norm(ref_zm)**2 + eps)
+    return 20 * np.log10(eps + np.linalg.norm(t) /
+                         (np.linalg.norm(est_zm - t) + eps))
 
 
 def cal_SISNRi(est, ref, mix, eps=1e-8):
@@ -50,7 +49,7 @@ def cal_PESQ_norm(est, ref):
     try:
         # normalize PESQ to (0, 1)
         p = (pesq(16000, ref, est, mode) + 0.5) / 5
-    except:
+    except Exception:
         # error can happen due to silent estimated signal
         p = None
     return p
@@ -99,9 +98,12 @@ def batch_evaluation(metric, est, ref, lengths=None, parallel=False, n_jobs=8):
         metric (Callable): the function to calculate metric
         est (np.ndarray): separated signal, numpy.ndarray, [B, T]
         ref (np.ndarray): reference signal, numpy.ndarray, [B, T]
-        lengths (np.ndarray, optional): specify the length of each signal. Defaults to None.
-        parallel (bool, optional): whether to calculate metric in parallel. Default to False.
-        n_jobs (int, optional): number of jobs, used when `parallel` is True. Defaults to 8.
+        lengths (np.ndarray, optional): specify the length of each signal.
+                                        Defaults to None.
+        parallel (bool, optional): whether to calculate metric in parallel.
+                                   Default to False.
+        n_jobs (int, optional): number of jobs, used when `parallel` is True.
+                                Defaults to 8.
 
     Returns:
         scores (np.ndarray): batched metrics, [B]
@@ -116,9 +118,9 @@ def batch_evaluation(metric, est, ref, lengths=None, parallel=False, n_jobs=8):
     if parallel:
         while True:
             try:
-                scores = Parallel(n_jobs=n_jobs, timeout=30)(
-                    delayed(metric)(p, t) for p, t in zip(est, ref)
-                )
+                scores = Parallel(n_jobs=n_jobs,
+                                  timeout=30)(delayed(metric)(p, t)
+                                              for p, t in zip(est, ref))
                 break
             except Exception as e:
                 print(e)

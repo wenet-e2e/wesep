@@ -22,9 +22,9 @@ def get_spk2utt_librimix(paths, audio_format="flac"):
     spk2utt = defaultdict(list)
     for path in paths:
         for audio in chain(
-            Path(path).rglob("s1/*.{}".format(audio_format)),
-            Path(path).rglob("s2/*.{}".format(audio_format)),
-            Path(path).rglob("s3/*.{}".format(audio_format)),
+                Path(path).rglob("s1/*.{}".format(audio_format)),
+                Path(path).rglob("s2/*.{}".format(audio_format)),
+                Path(path).rglob("s3/*.{}".format(audio_format)),
         ):
             spk_idx = int(audio.parent.stem[1:]) - 1
             mix_uid = audio.stem
@@ -62,9 +62,8 @@ if __name__ == "__main__":
 
     if args.is_librimix:
         # use clean sources from LibriMix as enrollment
-        spk2utt = get_spk2utt_librimix(
-            args.audio_paths, audio_format=args.audio_format
-        )
+        spk2utt = get_spk2utt_librimix(args.audio_paths,
+                                       audio_format=args.audio_format)
     else:
         # use Librispeech as enrollment
         spk2utt = get_spk2utt(args.audio_paths, audio_format=args.audio_format)

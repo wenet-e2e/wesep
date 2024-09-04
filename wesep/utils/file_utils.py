@@ -41,9 +41,8 @@ def norm_embeddings(embeddings, kaldi_style=True):
     """
     scale = math.sqrt(embeddings.shape[-1]) if kaldi_style else 1.0
     if len(embeddings.shape) == 2:
-        return (
-            scale * embeddings.transpose() / np.linalg.norm(embeddings, axis=1)
-        ).transpose()
+        return (scale * embeddings.transpose() /
+                np.linalg.norm(embeddings, axis=1)).transpose()
     elif len(embeddings.shape) == 1:
         return scale * embeddings / np.linalg.norm(embeddings)
 
@@ -115,7 +114,8 @@ def read_2columns_text(path: Union[Path, str]) -> Dict[str, str]:
 # ported from
 # https://github.com/espnet/espnet/blob/master/espnet2/fileio/read_text.py
 def read_multi_columns_text(
-    path: Union[Path, str], return_unsplit: bool = False
+    path: Union[Path, str],
+    return_unsplit: bool = False
 ) -> Tuple[Dict[str, List[str]], Optional[Dict[str, str]]]:
     """Read a text file having 2 or more columns as dict object.
 
@@ -128,7 +128,8 @@ def read_multi_columns_text(
 
         >>> read_multi_columns_text('wav.scp')
         {'key1': ['/some/path/a1.wav', '/some/path/a2.wav'],
-         'key2': ['/some/path/b1.wav', '/some/path/b2.wav', '/some/path/b3.wav'],
+         'key2': ['/some/path/b1.wav', '/some/path/b2.wav',
+                  '/some/path/b3.wav'],
          'key3': ['/some/path/c1.wav']}
 
     """
@@ -202,17 +203,15 @@ def soundfile_read(
         if prev_wav is not None:
             if prev_rate != rate:
                 raise RuntimeError(
-                    f"'{prev_wav}' and '{wav}' have mismatched sampling rate: "
-                    f"{prev_rate} != {rate}"
-                )
+                    f"{prev_wav} and {wav} have mismatched sampling rate: "
+                    f"{prev_rate} != {rate}")
 
             dim1 = arrays[0].shape[1 - concat_axis]
             dim2 = array.shape[1 - concat_axis]
             if dim1 != dim2:
                 raise RuntimeError(
                     "Shapes must match with "
-                    f"{1 - concat_axis} axis, but gut {dim1} and {dim2}"
-                )
+                    f"{1 - concat_axis} axis, but gut {dim1} and {dim2}")
 
         prev_rate = rate
         prev_wav = wav

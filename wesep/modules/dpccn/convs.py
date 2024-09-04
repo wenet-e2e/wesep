@@ -17,9 +17,8 @@ class Conv1D(nn.Conv1d):
         x: N x L or N x C x L
         """
         if x.dim() not in [2, 3]:
-            raise RuntimeError(
-                "{} accept 2/3D tensor as input".format(self.__name__)
-            )
+            raise RuntimeError("{} accept 2/3D tensor as input".format(
+                self.__name__))
         x = super().forward(x if x.dim() == 3 else torch.unsqueeze(x, 1))
         if squeeze:
             x = torch.squeeze(x)
@@ -27,18 +26,18 @@ class Conv1D(nn.Conv1d):
 
 
 class Conv2dBlock(nn.Module):
+
     def __init__(
-        self,
-        in_dims: int = 16,
-        out_dims: int = 32,
-        kernel_size: Tuple[int] = (3, 3),
-        stride: Tuple[int] = (1, 1),
-        padding: Tuple[int] = (1, 1),
+            self,
+            in_dims: int = 16,
+            out_dims: int = 32,
+            kernel_size: Tuple[int] = (3, 3),
+            stride: Tuple[int] = (1, 1),
+            padding: Tuple[int] = (1, 1),
     ) -> None:
         super(Conv2dBlock, self).__init__()
-        self.conv2d = nn.Conv2d(
-            in_dims, out_dims, kernel_size, stride, padding
-        )
+        self.conv2d = nn.Conv2d(in_dims, out_dims, kernel_size, stride,
+                                padding)
         self.elu = nn.ELU()
         self.norm = nn.InstanceNorm2d(out_dims)
 
@@ -49,19 +48,19 @@ class Conv2dBlock(nn.Module):
 
 
 class ConvTrans2dBlock(nn.Module):
+
     def __init__(
-        self,
-        in_dims: int = 32,
-        out_dims: int = 16,
-        kernel_size: Tuple[int] = (3, 3),
-        stride: Tuple[int] = (1, 2),
-        padding: Tuple[int] = (1, 0),
-        output_padding: Tuple[int] = (0, 0),
+            self,
+            in_dims: int = 32,
+            out_dims: int = 16,
+            kernel_size: Tuple[int] = (3, 3),
+            stride: Tuple[int] = (1, 2),
+            padding: Tuple[int] = (1, 0),
+            output_padding: Tuple[int] = (0, 0),
     ) -> None:
         super(ConvTrans2dBlock, self).__init__()
-        self.convtrans2d = nn.ConvTranspose2d(
-            in_dims, out_dims, kernel_size, stride, padding, output_padding
-        )
+        self.convtrans2d = nn.ConvTranspose2d(in_dims, out_dims, kernel_size,
+                                              stride, padding, output_padding)
         self.elu = nn.ELU()
         self.norm = nn.InstanceNorm2d(out_dims)
 
@@ -72,27 +71,28 @@ class ConvTrans2dBlock(nn.Module):
 
 
 class DenseBlock(nn.Module):
+
     def __init__(self, in_dims, out_dims, mode="enc", **kargs):
         super(DenseBlock, self).__init__()
         if mode not in ["enc", "dec"]:
             raise RuntimeError("The mode option must be 'enc' or 'dec'!")
 
         n = 1 if mode == "enc" else 2
-        self.conv1 = Conv2dBlock(
-            in_dims=in_dims * n, out_dims=in_dims, **kargs
-        )
-        self.conv2 = Conv2dBlock(
-            in_dims=in_dims * (n + 1), out_dims=in_dims, **kargs
-        )
-        self.conv3 = Conv2dBlock(
-            in_dims=in_dims * (n + 2), out_dims=in_dims, **kargs
-        )
-        self.conv4 = Conv2dBlock(
-            in_dims=in_dims * (n + 3), out_dims=in_dims, **kargs
-        )
-        self.conv5 = Conv2dBlock(
-            in_dims=in_dims * (n + 4), out_dims=out_dims, **kargs
-        )
+        self.conv1 = Conv2dBlock(in_dims=in_dims * n,
+                                 out_dims=in_dims,
+                                 **kargs)
+        self.conv2 = Conv2dBlock(in_dims=in_dims * (n + 1),
+                                 out_dims=in_dims,
+                                 **kargs)
+        self.conv3 = Conv2dBlock(in_dims=in_dims * (n + 2),
+                                 out_dims=in_dims,
+                                 **kargs)
+        self.conv4 = Conv2dBlock(in_dims=in_dims * (n + 3),
+                                 out_dims=in_dims,
+                                 **kargs)
+        self.conv5 = Conv2dBlock(in_dims=in_dims * (n + 4),
+                                 out_dims=out_dims,
+                                 **kargs)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y1 = self.conv1(x)
@@ -120,11 +120,8 @@ class TCNBlock(nn.Module):
         super(TCNBlock, self).__init__()
         self.norm1 = nn.InstanceNorm1d(in_dims)
         self.elu1 = nn.ELU()
-        dconv_pad = (
-            (dilation * (kernel_size - 1)) // 2
-            if not causal
-            else (dilation * (kernel_size - 1))
-        )
+        dconv_pad = ((dilation * (kernel_size - 1)) // 2 if not causal else
+                     (dilation * (kernel_size - 1)))
         # dilated conv
         self.dconv1 = nn.Conv1d(
             in_dims,
@@ -148,7 +145,7 @@ class TCNBlock(nn.Module):
         y = self.elu1(self.norm1(x))
         y = self.dconv1(y)
         if self.causal:
-            y = y[:, :, : -self.dconv_pad]
+            y = y[:, :, :-self.dconv_pad]
         y = self.elu2(self.norm2(y))
         y = self.dconv2(y)
         x = x + y

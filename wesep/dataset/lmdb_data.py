@@ -21,9 +21,10 @@ import lmdb
 class LmdbData:
 
     def __init__(self, lmdb_file):
-        self.db = lmdb.open(
-            lmdb_file, readonly=True, lock=False, readahead=False
-        )
+        self.db = lmdb.open(lmdb_file,
+                            readonly=True,
+                            lock=False,
+                            readahead=False)
         with self.db.begin(write=False) as txn:
             obj = txn.get(b"__keys__")
             assert obj is not None

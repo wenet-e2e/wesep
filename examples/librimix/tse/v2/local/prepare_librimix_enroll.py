@@ -6,9 +6,12 @@ from wesep.utils.datadir_writer import DatadirWriter
 from wesep.utils.utils import str2bool
 
 
-def prepare_librimix_enroll(
-    wav_scp, spk2utts, output_dir, num_spk=2, train=True, prefix="enroll_spk"
-):
+def prepare_librimix_enroll(wav_scp,
+                            spk2utts,
+                            output_dir,
+                            num_spk=2,
+                            train=True,
+                            prefix="enroll_spk"):
     mixtures = []
     with Path(wav_scp).open("r", encoding="utf-8") as f:
         for line in f:
@@ -32,8 +35,7 @@ def prepare_librimix_enroll(
                     # For training, we choose the auxiliary signal on the fly.
                     # Here we use the pattern f"*{uttID} {spkID}".
                     writer[f"{prefix}{spk + 1}.enroll"][
-                        mixtureID
-                    ] = f"*{uttID} {spkID}"
+                        mixtureID] = f"*{uttID} {spkID}"
                 else:
                     enrollID = random.choice(spk2utt[spkID])[1]
                     while enrollID == uttID and len(spk2utt[spkID]) > 1:
@@ -41,9 +43,11 @@ def prepare_librimix_enroll(
                     writer[f"{prefix}{spk + 1}.enroll"][mixtureID] = enrollID
 
 
-def prepare_librimix_enroll_v2(
-    wav_scp, map_mix2enroll, output_dir, num_spk=2, prefix="spk"
-):
+def prepare_librimix_enroll_v2(wav_scp,
+                               map_mix2enroll,
+                               output_dir,
+                               num_spk=2,
+                               prefix="spk"):
     # noqa E501: ported from https://github.com/BUTSpeechFIT/speakerbeam/blob/main/egs/libri2mix/local/create_enrollment_csv_fixed.py
     mixtures = []
     with Path(wav_scp).open("r", encoding="utf-8") as f:
@@ -65,9 +69,8 @@ def prepare_librimix_enroll_v2(
             # 100-121669-0004_3180-138043-0053
             for spk in range(num_spk):
                 enroll_id = mix2enroll[mixtureID, f"s{spk + 1}"]
-                writer[f"{prefix}{spk + 1}.enroll"][mixtureID] = (
-                    enroll_id + ".wav"
-                )
+                writer[f"{prefix}{spk + 1}.enroll"][mixtureID] = (enroll_id +
+                                                                  ".wav")
 
 
 if __name__ == "__main__":

@@ -97,19 +97,15 @@ def train(config="conf/config.yaml", **kwargs):
         ]
     loss_posi = configs["loss_args"].get(
         "loss_posi",
-        [
-            [
-                0,
-            ]
-        ],
+        [[
+            0,
+        ]],
     )
     loss_weight = configs["loss_args"].get(
         "loss_weight",
-        [
-            [
-                1.0,
-            ]
-        ],
+        [[
+            1.0,
+        ]],
     )
     loss_args = (loss_posi, loss_weight)
 
@@ -117,23 +113,20 @@ def train(config="conf/config.yaml", **kwargs):
     tr_spk_embeds = configs.get("train_spk_embeds", None)
     tr_single_utt2spk = configs["train_utt2spk"]
     joint_training = configs["model_args"]["tse_model"].get(
-        "joint_training", False
-    )
+        "joint_training", False)
     multi_task = configs["model_args"]["tse_model"].get("multi_task", False)
 
     dict_spk = {}
     if not joint_training and tr_spk_embeds:
-        tr_spk2embed_dict = load_speaker_embeddings(
-            tr_spk_embeds, tr_single_utt2spk
-        )
+        tr_spk2embed_dict = load_speaker_embeddings(tr_spk_embeds,
+                                                    tr_single_utt2spk)
         multi_task = None
     else:
         with open(configs["train_spk2utt"], "r") as f:
             tr_spk2embed_dict = json.load(f)
             if multi_task:
-                for i, j in enumerate(
-                        tr_spk2embed_dict.keys()
-                ):  # Generate the dictionary for speakers in training set
+                for i, j in enumerate(tr_spk2embed_dict.keys(
+                )):  # Generate the dictionary for speakers in training set
                     dict_spk[j] = i
 
     with open(tr_single_utt2spk, "r") as f:
@@ -169,32 +162,32 @@ def train(config="conf/config.yaml", **kwargs):
         noise_prob=configs["dataset_args"].get("noise_prob", 0),
         reverb_prob=configs["dataset_args"].get("reverb_prob", 0),
         noise_enroll_prob=configs["dataset_args"].get("noise_enroll_prob", 0),
-        reverb_enroll_prob=configs["dataset_args"].get("reverb_enroll_prob", 0),
-        specaug_enroll_prob=configs["dataset_args"].get("specaug_enroll_prob", 0),
+        reverb_enroll_prob=configs["dataset_args"].get("reverb_enroll_prob",
+                                                       0),
+        specaug_enroll_prob=configs["dataset_args"].get(
+            "specaug_enroll_prob", 0),
         online_mix=configs["dataset_args"].get("online_mix", False),
         noise_lmdb_file=configs["dataset_args"].get("noise_lmdb_file", None),
     )
-    val_dataset = Dataset(
-        configs["data_type"],
-        configs["val_data"],
-        configs["dataset_args"],
-        val_spk2embed_dict,
-        val_spk1_embed,
-        val_spk2_embed,
-        state="val",
-        joint_training=joint_training,
-        whole_utt=configs.get("whole_utt", False),
-        repeat_dataset=True,
-        online_mix=False,
-        noise_prob=0,
-        reverb_prob=0,
-        noise_enroll_prob=0,
-        reverb_enroll_prob=0,
-        specaug_enroll_prob=0
-    )
-    train_dataloader = DataLoader(
-        train_dataset, **configs["dataloader_args"], collate_fn=tse_collate_fn
-    )
+    val_dataset = Dataset(configs["data_type"],
+                          configs["val_data"],
+                          configs["dataset_args"],
+                          val_spk2embed_dict,
+                          val_spk1_embed,
+                          val_spk2_embed,
+                          state="val",
+                          joint_training=joint_training,
+                          whole_utt=configs.get("whole_utt", False),
+                          repeat_dataset=True,
+                          online_mix=False,
+                          noise_prob=0,
+                          reverb_prob=0,
+                          noise_enroll_prob=0,
+                          reverb_enroll_prob=0,
+                          specaug_enroll_prob=0)
+    train_dataloader = DataLoader(train_dataset,
+                                  **configs["dataloader_args"],
+                                  collate_fn=tse_collate_fn)
     val_dataloader = DataLoader(
         val_dataset,
         **configs["dataloader_args"],
@@ -219,13 +212,12 @@ def train(config="conf/config.yaml", **kwargs):
     optimizer_list = []
 
     logger.info("<== Model ==>")
-    model = get_model(configs["model"]["tse_model"])(
-        **configs["model_args"]["tse_model"]
-    )
+    model = get_model(
+        configs["model"]["tse_model"])(**configs["model_args"]["tse_model"])
     num_params = sum(param.numel() for param in model.parameters())
 
     if rank == 0:
-        logger.info("tse_model size: {:.2f} M".format(num_params/1e6))
+        logger.info("tse_model size: {:.2f} M".format(num_params / 1e6))
         # print model
         for line in pformat(model).split("\n"):
             logger.info(line)
@@ -233,8 +225,7 @@ def train(config="conf/config.yaml", **kwargs):
     # ddp_model
     model.cuda()
     ddp_model = torch.nn.parallel.DistributedDataParallel(
-        model, find_unused_parameters=find_unused_parameters
-    )
+        model, find_unused_parameters=find_unused_parameters)
     device = torch.device("cuda")
 
     if rank == 0:
@@ -242,33 +233,28 @@ def train(config="conf/config.yaml", **kwargs):
         logger.info("loss criterion is: " + str(configs["loss"]))
 
     configs["optimizer_args"]["tse_model"]["lr"] = configs["scheduler_args"][
-        "tse_model"
-    ]["initial_lr"]
+        "tse_model"]["initial_lr"]
     optimizer = getattr(torch.optim, configs["optimizer"]["tse_model"])(
-        ddp_model.parameters(), **configs["optimizer_args"]["tse_model"]
-    )
+        ddp_model.parameters(), **configs["optimizer_args"]["tse_model"])
     if rank == 0:
         logger.info("<== TSE Model Optimizer ==>")
         logger.info("optimizer is: " + configs["optimizer"]["tse_model"])
 
     # scheduler
-    configs["scheduler_args"]["tse_model"]["num_epochs"] = configs["num_epochs"]
+    configs["scheduler_args"]["tse_model"]["num_epochs"] = configs[
+        "num_epochs"]
     configs["scheduler_args"]["tse_model"]["epoch_iter"] = epoch_iter
     configs["scheduler_args"]["scale_ratio"] = 1.0
 
     scheduler = getattr(schedulers, configs["scheduler"]["tse_model"])(
-        optimizer, **configs["scheduler_args"]["tse_model"]
-    )
+        optimizer, **configs["scheduler_args"]["tse_model"])
     if rank == 0:
         logger.info("<== TSE Model Scheduler ==>")
         logger.info("scheduler is: " + configs["scheduler"]["tse_model"])
 
     if configs["model_init"]["tse_model"] is not None:
-        logger.info(
-            "Load initial model from {}".format(
-                configs["model_init"]["tse_model"]
-            )
-        )
+        logger.info("Load initial model from {}".format(
+            configs["model_init"]["tse_model"]))
         load_pretrained_model(ddp_model, configs["model_init"]["tse_model"])
     elif checkpoint is None:
         logger.info("Train model from scratch ...")
@@ -284,12 +270,10 @@ def train(config="conf/config.yaml", **kwargs):
 
     # If specify checkpoint, load some info from checkpoint.
     if checkpoint is not None:
-        load_checkpoint(
-            model_list, optimizer_list, scheduler_list, scaler, checkpoint
-        )
+        load_checkpoint(model_list, optimizer_list, scheduler_list, scaler,
+                        checkpoint)
         start_epoch = (
-            int(re.findall(r"(?<=checkpoint_)\d*(?=.pt)", checkpoint)[0]) + 1
-        )
+            int(re.findall(r"(?<=checkpoint_)\d*(?=.pt)", checkpoint)[0]) + 1)
         logger.info("Load checkpoint: {}".format(checkpoint))
     else:
         start_epoch = 1
@@ -351,10 +335,10 @@ def train(config="conf/config.yaml", **kwargs):
         )
 
         if rank == 0:
-            logger.info(
-                "Epoch {} Train info train_loss {}".format(epoch, train_loss)
-            )
-            logger.info("Epoch {} Val info val_loss {}".format(epoch, val_loss))
+            logger.info("Epoch {} Train info train_loss {}".format(
+                epoch, train_loss))
+            logger.info("Epoch {} Val info val_loss {}".format(
+                epoch, val_loss))
             train_losses.append(train_loss)
             val_losses.append(val_loss)
 
@@ -365,23 +349,22 @@ def train(config="conf/config.yaml", **kwargs):
             plt.title("Loss of Train and Validation")
             x = list(range(start_epoch, epoch + 1))
             plt.plot(x, train_losses, "b-", label="Train Loss", linewidth=0.8)
-            plt.plot(
-                x, val_losses, "c-", label="Validation Loss", linewidth=0.8
-            )
+            plt.plot(x,
+                     val_losses,
+                     "c-",
+                     label="Validation Loss",
+                     linewidth=0.8)
             plt.legend()
             plt.xlabel("Epoch")
             plt.ylabel("Loss")
             plt.xticks(range(start_epoch, epoch + 1, 1))
             plt.savefig(
-                f"{configs['exp_dir']}/{configs['model']['tse_model']}.png"
-            )
+                f"{configs['exp_dir']}/{configs['model']['tse_model']}.png")
             plt.close()
 
         if rank == 0:
-            if (
-                    epoch % configs["save_epoch_interval"] == 0
-                    or epoch >= configs["num_epochs"] - configs["num_avg"]
-            ):
+            if (epoch % configs["save_epoch_interval"] == 0
+                    or epoch >= configs["num_epochs"] - configs["num_avg"]):
                 save_checkpoint(
                     model_list,
                     optimizer_list,

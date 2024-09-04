@@ -3,20 +3,19 @@ import torch.nn as nn
 
 from wesep.modules.common import select_norm
 
-
 # from wesep.modules.common.spkadapt import SpeakerFuseLayer
 
 
 class Conv1D(nn.Conv1d):
+
     def __init__(self, *args, **kwargs):
         super(Conv1D, self).__init__(*args, **kwargs)
 
     def forward(self, x, squeeze=False):
         # x: N x C x L
         if x.dim() not in [2, 3]:
-            raise RuntimeError(
-                "{} accept 2/3D tensor as input".format(self.__name__)
-            )
+            raise RuntimeError("{} accept 2/3D tensor as input".format(
+                self.__name__))
         x = super().forward(x if x.dim() == 3 else torch.unsqueeze(x, 1))
         if squeeze:
             x = torch.squeeze(x)
@@ -24,6 +23,7 @@ class Conv1D(nn.Conv1d):
 
 
 class ConvTrans1D(nn.ConvTranspose1d):
+
     def __init__(self, *args, **kwargs):
         super(ConvTrans1D, self).__init__(*args, **kwargs)
 
@@ -32,9 +32,8 @@ class ConvTrans1D(nn.ConvTranspose1d):
         x: N x L or N x C x L
         """
         if x.dim() not in [2, 3]:
-            raise RuntimeError(
-                "{} accept 2/3D tensor as input".format(self.__name__)
-            )
+            raise RuntimeError("{} accept 2/3D tensor as input".format(
+                self.__name__))
         x = super().forward(x if x.dim() == 3 else torch.unsqueeze(x, 1))
         if squeeze:
             x = torch.squeeze(x)
@@ -62,11 +61,8 @@ class Conv1DBlock(nn.Module):
         self.PReLU_1 = nn.PReLU()
         self.norm_1 = select_norm(norm, out_channels)
         # not causal don't need to padding, causal need to pad+1 = kernel_size
-        self.pad = (
-            (dilation * (kernel_size - 1)) // 2
-            if not causal
-            else (dilation * (kernel_size - 1))
-        )
+        self.pad = ((dilation * (kernel_size - 1)) // 2 if not causal else
+                    (dilation * (kernel_size - 1)))
         # depthwise convolution
         # TODO: This is not depthwise seperable convolution
         self.dwconv = Conv1D(
@@ -96,7 +92,7 @@ class Conv1DBlock(nn.Module):
         # noncausal: N x O_C x L
         c = self.dwconv(c)
         if self.causal:
-            c = c[:, :, : -self.pad]
+            c = c[:, :, :-self.pad]
         c = self.PReLU_2(c)
         c = self.norm_2(c)
         # N x O_C x L
@@ -129,11 +125,8 @@ class Conv1DBlock4Fuse(nn.Module):
         self.conv1x1 = Conv1D(in_channels + spk_embed_dim, conv_channels, 1)
         self.prelu1 = nn.PReLU()
         self.lnorm1 = select_norm(norm, conv_channels)
-        dconv_pad = (
-            (dilation * (kernel_size - 1)) // 2
-            if not causal
-            else (dilation * (kernel_size - 1))
-        )
+        dconv_pad = ((dilation * (kernel_size - 1)) // 2 if not causal else
+                     (dilation * (kernel_size - 1)))
         # depthwise conv
         self.dconv = nn.Conv1d(
             conv_channels,
@@ -160,7 +153,7 @@ class Conv1DBlock4Fuse(nn.Module):
         y = self.lnorm1(self.prelu1(y))
         y = self.dconv(y)
         if self.causal:
-            y = y[:, :, : -self.dconv_pad]
+            y = y[:, :, :-self.dconv_pad]
         y = self.lnorm2(self.prelu2(y))
         y = self.sconv(y)
         x = x + y

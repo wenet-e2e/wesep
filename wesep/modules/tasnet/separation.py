@@ -6,6 +6,7 @@ from wesep.modules.tasnet.convs import Conv1DBlock, Conv1DBlock4Fuse
 
 
 class Separation(nn.Module):
+
     def __init__(
         self,
         R,
@@ -34,8 +35,7 @@ class Separation(nn.Module):
         for _ in range(R):
             for x in range(start_dilation, X):
                 self.separation.append(
-                    Conv1DBlock(B, H, P, 2**x, norm, causal, skip_con)
-                )
+                    Conv1DBlock(B, H, P, 2**x, norm, causal, skip_con))
         self.skip_con = skip_con
 
     def forward(self, x):
@@ -58,6 +58,7 @@ class Separation(nn.Module):
 
 
 class FuseSeparation(nn.Module):
+
     def __init__(
         self,
         R,
@@ -99,8 +100,7 @@ class FuseSeparation(nn.Module):
                             norm=norm,
                             causal=causal,
                             dilation=1,
-                        )
-                    )
+                        ))
                     self.separation.append(
                         Separation(
                             1,
@@ -112,16 +112,14 @@ class FuseSeparation(nn.Module):
                             causal=causal,
                             skip_con=skip_con,
                             start_dilation=1,
-                        )
-                    )
+                        ))
                 else:
                     self.separation.append(
                         SpeakerFuseLayer(
                             embed_dim=C_embedding,
                             feat_dim=B,
                             fuse_type=spk_fuse_type,
-                        )
-                    )
+                        ))
                     self.separation.append(nn.PReLU())
                     self.separation.append(select_norm(norm, B))
                     self.separation.append(
@@ -134,8 +132,7 @@ class FuseSeparation(nn.Module):
                             norm=norm,
                             causal=causal,
                             skip_con=skip_con,
-                        )
-                    )
+                        ))
         else:
             if spk_fuse_type == "concatConv":
                 self.separation.append(
@@ -147,21 +144,24 @@ class FuseSeparation(nn.Module):
                         norm=norm,
                         causal=causal,
                         dilation=1,
-                    )
-                )
+                    ))
             else:
                 self.separation.append(
                     SpeakerFuseLayer(
                         embed_dim=C_embedding,
                         feat_dim=B,
                         fuse_type=spk_fuse_type,
-                    )
-                )
+                    ))
                 self.separation.append(nn.PReLU())
                 self.separation.append(select_norm(norm, B))
-            self.separation = Separation(
-                R, X, B, H, P, norm=norm, causal=causal, skip_con=skip_con
-            )
+            self.separation = Separation(R,
+                                         X,
+                                         B,
+                                         H,
+                                         P,
+                                         norm=norm,
+                                         causal=causal,
+                                         skip_con=skip_con)
 
     def forward(self, x, spk_embedding):
         """

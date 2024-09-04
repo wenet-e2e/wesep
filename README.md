@@ -4,9 +4,9 @@
 
 
 ### Install for development & deployment
-* Clone this repo 
+* Clone this repo
 ``` sh
-https://github.com/wsstriving/wesep.git
+https://github.com/wenet-e2e/wesep.git
 ```
 
 * Create conda env: pytorch version >= 1.12.0 is required !!!
@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 ## The Target Speaker Extraction Task
 
-> Target speaker extraction (TSE) focuses on isolating the speech of a specific target speaker from overlapped multi-talker speech, which is a typical setup in the cocktail party problem. 
+> Target speaker extraction (TSE) focuses on isolating the speech of a specific target speaker from overlapped multi-talker speech, which is a typical setup in the cocktail party problem.
 WeSep is featured with flexible target speaker modeling, scalable data management, effective on-the-fly data simulation, structured recipes and deployment support.
 
 <img src="resources/tse.png" width="600px">

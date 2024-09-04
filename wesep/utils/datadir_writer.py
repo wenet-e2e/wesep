@@ -44,7 +44,7 @@ class DatadirWriter:
         if self.has_children:
             raise RuntimeError("This writer points out a directory")
         if key in self.keys:
-            warnings.warn(f"Duplicated: {key}")
+            warnings.warn(f"Duplicated: {key}", stacklevel=1)
 
         if self.fd is None:
             self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -64,8 +64,8 @@ class DatadirWriter:
                 if prev_child is not None and prev_child.keys != child.keys:
                     warnings.warn(
                         f"Ids are mismatching between "
-                        f"{prev_child.path} and {child.path}"
-                    )
+                        f"{prev_child.path} and {child.path}",
+                        stacklevel=1)
                 prev_child = child
 
         elif self.fd is not None:

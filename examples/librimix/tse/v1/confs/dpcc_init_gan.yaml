@@ -28,7 +28,7 @@ model:
   tse_model: DPCCN
   discriminator: CMGAN_Discriminator
 model_args:
-  tse_model: 
+  tse_model:
     win: 512
     stride: 128
     feature_dim: 257
@@ -40,7 +40,7 @@ model_args:
     use_spk_transform: False
   discriminator: {}
 
-model_init: 
+model_init:
   tse_model: exp/DPCCN/no_spk_transform-multiply_fuse/models/final_model.pt
   discriminator: null
 num_avg: 5

@@ -14,6 +14,7 @@ from wesep.modules.dpccn.convs import TCNBlock
 
 
 class DPCCN(nn.Module):
+
     def __init__(
         self,
         win=512,
@@ -57,9 +58,9 @@ class DPCCN(nn.Module):
 
         self.conv2d = nn.Conv2d(2, 16, kernel_size, stride1, paddings)
 
-        self.encoder = self._build_encoder(
-            kernel_size=kernel_size, stride=stride2, padding=paddings
-        )
+        self.encoder = self._build_encoder(kernel_size=kernel_size,
+                                           stride=stride2,
+                                           padding=paddings)
 
         if use_spk_transform:
             self.spk_transform = SpeakerTransform()
@@ -124,9 +125,8 @@ class DPCCN(nn.Module):
         self.avg_pool = self._build_avg_pool(pool_size)
         self.avg_proj = nn.Conv2d(64, 32, 1, 1)
 
-        self.deconv2d = nn.ConvTranspose2d(
-            32, 2, kernel_size, stride1, paddings
-        )
+        self.deconv2d = nn.ConvTranspose2d(32, 2, kernel_size, stride1,
+                                           paddings)
 
     def _build_encoder(self, **enc_kargs):
         """
@@ -137,12 +137,11 @@ class DPCCN(nn.Module):
         for i in range(4):
             encoder.append(
                 nn.Sequential(
-                    Conv2dBlock(
-                        in_dims=16 if i == 0 else 32, out_dims=32, **enc_kargs
-                    ),
+                    Conv2dBlock(in_dims=16 if i == 0 else 32,
+                                out_dims=32,
+                                **enc_kargs),
                     DenseBlock(32, 32, "enc"),
-                )
-            )
+                ))
         encoder.append(Conv2dBlock(in_dims=32, out_dims=64, **enc_kargs))
         encoder.append(Conv2dBlock(in_dims=64, out_dims=128, **enc_kargs))
         encoder.append(Conv2dBlock(in_dims=128, out_dims=384, **enc_kargs))
@@ -155,23 +154,19 @@ class DPCCN(nn.Module):
         """
         decoder = nn.ModuleList()
         decoder.append(
-            ConvTrans2dBlock(in_dims=384 * 2, out_dims=128, **dec_kargs)
-        )
+            ConvTrans2dBlock(in_dims=384 * 2, out_dims=128, **dec_kargs))
         decoder.append(
-            ConvTrans2dBlock(in_dims=128 * 2, out_dims=64, **dec_kargs)
-        )
+            ConvTrans2dBlock(in_dims=128 * 2, out_dims=64, **dec_kargs))
         decoder.append(
-            ConvTrans2dBlock(in_dims=64 * 2, out_dims=32, **dec_kargs)
-        )
+            ConvTrans2dBlock(in_dims=64 * 2, out_dims=32, **dec_kargs))
         for i in range(4):
             decoder.append(
                 nn.Sequential(
                     DenseBlock(32, 64, "dec"),
-                    ConvTrans2dBlock(
-                        in_dims=64, out_dims=32 if i != 3 else 16, **dec_kargs
-                    ),
-                )
-            )
+                    ConvTrans2dBlock(in_dims=64,
+                                     out_dims=32 if i != 3 else 16,
+                                     **dec_kargs),
+                ))
         decoder.append(DenseBlock(16, 32, "dec"))
 
         return decoder
@@ -204,8 +199,7 @@ class DPCCN(nn.Module):
         avg_pool = nn.ModuleList()
         for sz in pool_size:
             avg_pool.append(
-                nn.Sequential(nn.AvgPool2d(sz), nn.Conv2d(32, 8, 1, 1))
-            )
+                nn.Sequential(nn.AvgPool2d(sz), nn.Conv2d(32, 8, 1, 1)))
 
         return avg_pool
 
@@ -219,9 +213,8 @@ class DPCCN(nn.Module):
             wav_input,
             n_fft=self.win_len,
             hop_length=self.hop_size,
-            window=torch.hann_window(self.win_len)
-            .to(wav_input.device)
-            .type(wav_input.type()),
+            window=torch.hann_window(self.win_len).to(wav_input.device).type(
+                wav_input.type()),
             return_complex=True,
         )
         # concat real and imag, split to subbands
@@ -234,8 +227,7 @@ class DPCCN(nn.Module):
         out = self.encoder[0](out)
 
         predict_speaker_lable = torch.tensor(0.0).to(
-            spk_emb_input.device
-        )  # dummy
+            spk_emb_input.device)  # dummy
         if self.joint_training:
             if not self.spk_feat:
                 if self.feat_type == "consistent":
@@ -244,8 +236,7 @@ class DPCCN(nn.Module):
                         spk_emb_input = self.spk_encoder(spk_emb_input) + 1e-8
                         spk_emb_input = spk_emb_input.log()
                         spk_emb_input = spk_emb_input - torch.mean(
-                            spk_emb_input, dim=-1, keepdim=True
-                        )
+                            spk_emb_input, dim=-1, keepdim=True)
                         spk_emb_input = spk_emb_input.permute(0, 2, 1)
 
             tmp_spk_emb_input = self.spk_model(spk_emb_input)
@@ -291,9 +282,8 @@ class DPCCN(nn.Module):
             est_spec.reshape(B, -1, T),
             n_fft=self.win_len,
             hop_length=self.hop_size,
-            window=torch.hann_window(self.win_len)
-            .to(wav_input.device)
-            .type(wav_input.type()),
+            window=torch.hann_window(self.win_len).to(wav_input.device).type(
+                wav_input.type()),
             length=nsample,
         )
 

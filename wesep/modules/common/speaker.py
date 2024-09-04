@@ -24,6 +24,7 @@ class PreEmphasis(torch.nn.Module):
 
 
 class SpeakerTransform(nn.Module):
+
     def __init__(self, embed_dim=256, num_layers=3, hid_dim=128):
         """
         Transform the pretrained speaker embeddings, keep the dimension
@@ -49,6 +50,7 @@ class SpeakerTransform(nn.Module):
 
 
 class LinearLayer(nn.Module):
+
     def __init__(self, in_features, out_features, bias=True):
         super(LinearLayer, self).__init__()
 
@@ -59,6 +61,7 @@ class LinearLayer(nn.Module):
 
 
 class SpeakerFuseLayer(nn.Module):
+
     def __init__(self, embed_dim=256, feat_dim=512, fuse_type="concat"):
         super(SpeakerFuseLayer, self).__init__()
         assert fuse_type in ["concat", "additive", "multiply", "FiLM", "None"]

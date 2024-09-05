@@ -15,6 +15,7 @@ conda create -n wesep python=3.9
 conda activate wesep
 conda install pytorch=1.12.1 torchaudio=0.12.1 cudatoolkit=11.3 -c pytorch -c conda-forge
 pip install -r requirements.txt
+pre-commit install  # for clean and tidy code
 ```
 
 ## The Target Speaker Extraction Task

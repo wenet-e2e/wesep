@@ -321,9 +321,9 @@ def train(config="conf/config.yaml", **kwargs):
             se_loss_weight=loss_args,
             multi_task=multi_task,
             SSA_enroll_prob=configs["dataset_args"].get("SSA_enroll_prob", 0),
-            fbank_args= configs["dataset_args"].get('fbank_args',None),
+            fbank_args=configs["dataset_args"].get('fbank_args', None),
             sample_rate=configs["dataset_args"]['resample_rate'],
-            speaker_feat = configs["dataset_args"].get('speaker_feat', True)
+            speaker_feat=configs["dataset_args"].get('speaker_feat', True)
         )
 
         val_loss, _ = executor.cv(

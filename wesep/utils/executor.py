@@ -20,8 +20,9 @@ import tableprint as tp
 # if your python version < 3.7 use the below one
 import torch
 
-from wesep.utils.funcs import clip_gradients,compute_fbank,apply_cmvn
-import random 
+from wesep.utils.funcs import clip_gradients, compute_fbank, apply_cmvn
+import random
+
 
 class Executor:
 
@@ -85,19 +86,21 @@ class Executor:
                 spk_label = spk_label.to(device)
 
                 with torch.cuda.amp.autocast(enabled=enable_amp):
-                    if SSA_enroll_prob >0:
-                        if SSA_enroll_prob>random.random():
+                    if SSA_enroll_prob > 0:
+                        if SSA_enroll_prob > random.random():
                             with torch.no_grad():
                                 outputs = model(features, enroll)
                                 est_speech = outputs[0]
                                 self_fbank = est_speech
-                                if fbank_args!=None and speaker_feat==True:
-                                    self_fbank = compute_fbank(est_speech,**fbank_args,sample_rate=sample_rate)
+                                if fbank_args is not None and speaker_feat:
+                                    self_fbank = compute_fbank(
+                                        est_speech, **fbank_args,
+                                        sample_rate=sample_rate)
                                     self_fbank = apply_cmvn(self_fbank)
                             outputs = model(features, self_fbank)
                         else:
                             outputs = model(features, enroll)
-                    else: 
+                    else:
                         outputs = model(features, enroll)
                     if not isinstance(outputs, (list, tuple)):
                         outputs = [outputs]

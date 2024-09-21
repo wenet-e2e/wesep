@@ -12,7 +12,7 @@ dataset_args:
   shuffle_args:
     shuffle_size: 2500
   chunk_len: 48000
-  speaker_feat: &speaker_feat True
+  speaker_feat: &speaker_feat False
   fbank_args:
     num_mel_bins: 80
     frame_shift: 10
@@ -23,26 +23,28 @@ dataset_args:
   specaug_enroll_prob: 0 # prob to apply SpecAug on fbank of enrollment speech
   reverb_enroll_prob: 0 # prob to add reverb aug on enrollment speech
   noise_enroll_prob: 0 # prob to add noise aug on enrollment speech
-  # Self-estimated Speech Augmentation (SSA). Please ref our SLT paper: https://www.arxiv.org/abs/2409.09589
-  # only Single-optimization method is supported here.
-  # if you want to use multi-optimization, please ref bsrnn_multi_optim.yaml
-  SSA_enroll_prob:  0  # prob to add SSA on enrollment speech
+
 
 enable_amp: false
 exp_dir: exp/BSRNN
 gpus: '0,1'
 log_batch_interval: 100
 
+#Please refer to  our SLT paper https://www.arxiv.org/abs/2409.09589
+# to check our parameter settings.
 loss: SISDR
-loss_args: { }
+loss_args:
+  loss_posi: [[0,1]]
+  loss_weight: [[0.4,0.6]]
 
+#if you wanna use CE loss, multi_task needs to be set True
 # loss: [SISDR, CE]               ### For joint training the speaker encoder with CE loss. Put SISDR in the first position for validation set
 # loss_args:
-#   loss_posi: [[0],[1]]
-#   loss_weight: [[1.0],[1.0]]
+#   loss_posi: [[0,1],[2,3]]
+#   loss_weight: [[0.36,0.54],[0.04,0.06]]
 
 model:
-  tse_model: BSRNN
+  tse_model: BSRNN_Multi
 model_args:
   tse_model:
     sr: *sr

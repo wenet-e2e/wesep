@@ -85,8 +85,8 @@ class Executor:
                 spk_label = spk_label.to(device)
 
                 with torch.cuda.amp.autocast(enabled=enable_amp):
-                    if SSA_enroll_prob['Single_optimization'] >0:
-                        if SSA_enroll_prob['Single_optimization']>random.random():
+                    if SSA_enroll_prob >0:
+                        if SSA_enroll_prob>random.random():
                             with torch.no_grad():
                                 outputs = model(features, enroll)
                                 est_speech = outputs[0]
@@ -101,7 +101,6 @@ class Executor:
                         outputs = model(features, enroll)
                     if not isinstance(outputs, (list, tuple)):
                         outputs = [outputs]
-
                     loss = 0
                     for ii in range(len(criterion)):
                         # se_loss_weight: ([position in outputs[0], [1]],

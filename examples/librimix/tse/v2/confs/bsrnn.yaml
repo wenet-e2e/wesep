@@ -23,6 +23,11 @@ dataset_args:
   specaug_enroll_prob: 0 # prob to apply SpecAug on fbank of enrollment speech
   reverb_enroll_prob: 0 # prob to add reverb aug on enrollment speech
   noise_enroll_prob: 0 # prob to add noise aug on enrollment speech
+  # Self-estimated Speech Augmentation (SSA). Please ref our SLT paper: https://www.arxiv.org/abs/2409.09589
+  # only Single-optimization method is supported here. 
+  # if you want to use multi-optimization, please ref bsrnn_multi_optimization.yaml
+  SSA_enroll_prob: 
+    Single_optimization: 0.6  # prob to add SSA on enrollment speech 
 
 enable_amp: false
 exp_dir: exp/BSRNN

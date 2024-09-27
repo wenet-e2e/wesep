@@ -60,6 +60,13 @@ Following Wenet and WesSeaker, WeSep organizes the data processing modules as a 
 
 <img src="resources/datapipe.png" width="800px">
 
+## Discussion
+
+For Chinese users, you can scan the QR code on the left to join our group directly. If it has expired, please scan the personal Wechat QR code on the right. 
+
+|<img src='resources/Wechat_group.jpg' style=" width: 200px; height: 300px;">|<img src='resources/Wechat.jpg' style=" width: 200px; height: 300px;">|
+| ---- | ---- |
+
 
 ## Citations
 If you find wespeaker useful, please cite it as

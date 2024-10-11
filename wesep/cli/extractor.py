@@ -84,7 +84,7 @@ class Extractor:
             audio_path_2, normalize=self.wavform_norm
         )
         return self.extract_speech_from_pcm(pcm_mix,
-                                            sample_rate_mix, 
+                                            sample_rate_mix,
                                             pcm_enroll,
                                             sample_rate_enroll)
 

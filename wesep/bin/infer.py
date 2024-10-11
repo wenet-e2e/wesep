@@ -47,6 +47,8 @@ def infer(config="confs/conf.yaml", **kwargs):
     else:
         sample_rate = 8000
 
+    if 'spk_model_init' in configs['model_args']['tse_model']:
+        configs['model_args']['tse_model']['spk_model_init'] = False
     model = get_model(
         configs["model"]["tse_model"])(**configs["model_args"]["tse_model"])
     model_path = os.path.join(configs["checkpoint"])

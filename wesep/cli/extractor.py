@@ -1,13 +1,11 @@
 import os
 import sys
 
-import numpy as np
-from silero_vad import load_silero_vad, read_audio, get_speech_timestamps
+from silero_vad import load_silero_vad, get_speech_timestamps
 import torch
 import torchaudio
 import torchaudio.compliance.kaldi as kaldi
 import yaml
-from tqdm import tqdm
 import soundfile
 
 from wesep.cli.hub import Hub
@@ -85,9 +83,16 @@ class Extractor:
         pcm_enroll, sample_rate_enroll = torchaudio.load(
             audio_path_2, normalize=self.wavform_norm
         )
-        return self.extract_speech_from_pcm(pcm_mix, sample_rate_mix, pcm_enroll, sample_rate_enroll)
+        return self.extract_speech_from_pcm(pcm_mix,
+                                            sample_rate_mix, 
+                                            pcm_enroll,
+                                            sample_rate_enroll)
 
-    def extract_speech_from_pcm(self, pcm_mix: torch.Tensor, sample_rate_mix: int, pcm_enroll: torch.Tensor, sample_rate_enroll: int,):
+    def extract_speech_from_pcm(self,
+                                pcm_mix: torch.Tensor,
+                                sample_rate_mix: int,
+                                pcm_enroll: torch.Tensor,
+                                sample_rate_enroll: int):
         if self.apply_vad:
             # TODO(Binbin Zhang): Refine the segments logic, here we just
             # suppose there is only silence at the start/end of the speech
@@ -113,7 +118,7 @@ class Extractor:
                 pcm_enroll = pcmTotal.unsqueeze(0)
             else:  # all silence, nospeech
                 return None
-            
+
         pcm_mix = pcm_mix.to(torch.float)
         if sample_rate_mix != self.resample_rate:
             pcm_mix = torchaudio.transforms.Resample(

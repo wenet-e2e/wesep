@@ -15,7 +15,6 @@
 # limitations under the License.
 
 import os
-import requests
 import sys
 from pathlib import Path
 import tarfile

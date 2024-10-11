@@ -90,7 +90,10 @@ class Hub(object):
     }
     #   Hard coding of the URL
     ModelURLs = {
-        "bsrnn_ecapa_vox1.tar.gz": "https://www.modelscope.cn/datasets/wenet/wesep_pretrained_models/resolve/master/bsrnn_ecapa_vox1.tar.gz",
+        "bsrnn_ecapa_vox1.tar.gz": (
+            "https://www.modelscope.cn/datasets/wenet/wesep_pretrained_models/"
+            "resolve/master/bsrnn_ecapa_vox1.tar.gz"
+        ),
     }
 
     def __init__(self) -> None:

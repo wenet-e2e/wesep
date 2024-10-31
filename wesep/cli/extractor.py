@@ -165,7 +165,6 @@ def main():
             model = load_model("bsrnn")
         else:
             model = load_model(args.language)
-        # model.set_wavform_norm(True)
     else:
         model = load_model_local(args.pretrain)
     model.set_resample_rate(args.resample_rate)

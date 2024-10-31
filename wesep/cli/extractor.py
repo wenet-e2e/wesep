@@ -36,7 +36,7 @@ class Extractor:
         self.resample_rate = configs["dataset_args"].get("resample_rate", 16000)
         self.apply_vad = False
         self.device = torch.device("cpu")
-        self.wavform_norm = False
+        self.wavform_norm = True
 
         self.speaker_feat = configs["model_args"]["tse_model"].get("spk_feat", False)
         self.joint_training = configs["model_args"]["tse_model"].get(
@@ -165,7 +165,6 @@ def main():
             model = load_model("bsrnn")
         else:
             model = load_model(args.language)
-        model.set_wavform_norm(True)
     else:
         model = load_model_local(args.pretrain)
     model.set_resample_rate(args.resample_rate)
@@ -174,6 +173,8 @@ def main():
     if args.task == "extraction":
         speech = model.extract_speech(args.audio_file, args.audio_file2)
         if speech is not None:
+            if args.normalize_output:
+                speech = speech / abs(speech).max(dim=1, keepdim=True).values * 0.9
             soundfile.write(args.output_file, speech[0], args.resample_rate)
             print("Succeed, see {}".format(args.output_file))
         else:

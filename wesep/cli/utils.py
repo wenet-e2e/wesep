@@ -51,5 +51,10 @@ def get_args():
         default='./extracted_speech.wav',
         help="extracted speech saved in .wav"
     )
+    parser.add_argument(
+        "--normalize_output",
+        default=True,
+        help="Control if normalize the ouput audio in .wav"
+    )
     args = parser.parse_args()
     return args

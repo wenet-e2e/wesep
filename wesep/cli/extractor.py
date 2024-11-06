@@ -149,7 +149,10 @@ class Extractor:
                 outputs = outputs[0] if isinstance(outputs, (list, tuple)) else outputs
             target_speech = outputs.to(torch.device("cpu"))
             if self.output_norm:
-                target_speech = target_speech / abs(target_speech).max(dim=1, keepdim=True).values * 0.9
+                target_speech = (
+                    target_speech 
+                    / abs(target_speech).max(dim=1, keepdim=True).values * 0.9
+                )
             return target_speech
         else:
             return None

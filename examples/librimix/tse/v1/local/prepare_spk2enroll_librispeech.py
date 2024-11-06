@@ -70,4 +70,4 @@ if __name__ == "__main__":
     outfile = Path(args.outfile)
     outfile.parent.mkdir(parents=True, exist_ok=True)
     with outfile.open("w", encoding="utf-8") as f:
-        json.dump(spk2utt, f)
+        json.dump(spk2utt, f, indent=4)

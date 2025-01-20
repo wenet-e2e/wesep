@@ -37,6 +37,7 @@ class Extractor:
         self.apply_vad = False
         self.device = torch.device("cpu")
         self.wavform_norm = True
+        self.output_norm = True
 
         self.speaker_feat = configs["model_args"]["tse_model"].get("spk_feat", False)
         self.joint_training = configs["model_args"]["tse_model"].get(
@@ -55,6 +56,9 @@ class Extractor:
     def set_device(self, device: str):
         self.device = torch.device(device)
         self.model = self.model.to(self.device)
+
+    def set_output_norm(self, output_norm: bool):
+        self.output_norm = output_norm
 
     def compute_fbank(
         self,
@@ -144,6 +148,11 @@ class Extractor:
                 outputs = self.model(pcm_mix, feats)
                 outputs = outputs[0] if isinstance(outputs, (list, tuple)) else outputs
             target_speech = outputs.to(torch.device("cpu"))
+            if self.output_norm:
+                target_speech = (
+                    target_speech
+                    / abs(target_speech).max(dim=1, keepdim=True).values * 0.9
+                )
             return target_speech
         else:
             return None
@@ -165,12 +174,12 @@ def main():
             model = load_model("bsrnn")
         else:
             model = load_model(args.language)
-        # model.set_wavform_norm(True)
     else:
         model = load_model_local(args.pretrain)
     model.set_resample_rate(args.resample_rate)
     model.set_vad(args.vad)
     model.set_device(args.device)
+    model.set_output_norm(args.output_norm)
     if args.task == "extraction":
         speech = model.extract_speech(args.audio_file, args.audio_file2)
         if speech is not None:

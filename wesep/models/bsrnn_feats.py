@@ -12,7 +12,7 @@ from wespeaker.models.speaker_model import get_speaker_model
 from wesep.modules.common.speaker import PreEmphasis
 from wesep.modules.common.speaker import SpeakerFuseLayer
 from wesep.modules.common.speaker import SpeakerTransform
-from wesep.utils.funcs import compute_fbank,apply_cmvn
+from wesep.utils.funcs import compute_fbank, apply_cmvn
 
 
 class ResRNN(nn.Module):
@@ -94,7 +94,7 @@ class CrossAtt(nn.Module):
         if query.dim() == 4:
             spk_embeddings = []
             for i in range(query.shape[1]):
-                x = query[:, i, :, :].squeeze(dim=1)  #(batch, feature, time)
+                x = query[:, i, :, :].squeeze(dim=1)  # (batch, feature, time)
                 x, _ = self.multihead_attn(x.transpose(1, 2),
                                            key.transpose(1, 2),
                                            value.transpose(1, 2))
@@ -106,7 +106,7 @@ class CrossAtt(nn.Module):
                                        value.transpose(1, 2))
             spk_embeddings = x.transpose(1, 2)
         return spk_embeddings
-    
+
 class FuseSeparation(nn.Module):
 
     def __init__(
@@ -143,7 +143,7 @@ class FuseSeparation(nn.Module):
                     SpeakerFuseLayer(
                         embed_dim=spk_emb_dim,
                         feat_dim=feature_dim,
-                        fuse_type=spk_fuse_type.lstrip("cross_"),
+                        fuse_type=spk_fuse_type.removeprefix("cross_"),
                     ))
                 self.separation.append(BSNet(nband * feature_dim, nband))
         else:
@@ -152,7 +152,7 @@ class FuseSeparation(nn.Module):
                     SpeakerFuseLayer(
                         embed_dim=spk_emb_dim,
                         feat_dim=feature_dim,
-                        fuse_type=spk_fuse_type.lstrip("cross_"),
+                        fuse_type=spk_fuse_type.removeprefix("cross_"),
                     ))
             for _ in range(num_repeat):
                 self.separation.append(BSNet(nband * feature_dim, nband))
@@ -265,7 +265,7 @@ class BSRNN_Feats(nn.Module):
         else:
             self.spk_transform = nn.Identity()
 
-        if joint_training and (spk_fuse_type or spectral_feat=='tfmap_emb'):
+        if joint_training and (spk_fuse_type or spectral_feat == 'tfmap_emb'):
             self.spk_model = get_speaker_model(spk_model)(**spk_args)
             if spk_model_init:
                 pretrained_model = torch.load(spk_model_init)
@@ -300,7 +300,7 @@ class BSRNN_Feats(nn.Module):
                 self.pred_linear = nn.Linear(spk_emb_dim, spksInTrain)
             else:
                 self.pred_linear = nn.Identity()
-        
+
         spec_map = 2
         if spectral_feat:
             spec_map += 1
@@ -373,7 +373,7 @@ class BSRNN_Feats(nn.Module):
 
         spec_RI = torch.stack([spec.real, spec.imag], 1)  # B*nch, 2, F, T
 
-        ##########################    Calculate the spectral level feature
+        # Calculate the spectral level feature
         if self.spectral_feat:
             aux_c = torch.stft(
                 spk_emb_input,
@@ -383,22 +383,22 @@ class BSRNN_Feats(nn.Module):
                     spk_emb_input.type()),
                 return_complex=True,
             )  
-            if self.spectral_feat=='tfmap_spec':
+            if self.spectral_feat == 'tfmap_spec':
                 mix_mag_ori = torch.abs(spec)
                 enroll_mag = torch.abs(aux_c)
 
                 mix_mag = F.normalize(mix_mag_ori, p=2, dim=1)
                 enroll_mag = F.normalize(enroll_mag, p=2, dim=1)
-                
-                mix_mag = mix_mag.permute(0,2,1).contiguous()
+
+                mix_mag = mix_mag.permute(0, 2, 1).contiguous()
                 att_scores = torch.matmul(mix_mag, enroll_mag)
                 att_weights = F.softmax(att_scores, dim=-1)
-                enroll_mag = enroll_mag.permute(0,2,1).contiguous()
+                enroll_mag = enroll_mag.permute(0, 2, 1).contiguous()
                 tf_map = torch.matmul(att_weights, enroll_mag)
-                tf_map = tf_map.permute(0,2,1).contiguous()
+                tf_map = tf_map.permute(0, 2, 1).contiguous()
 
                 tf_map = tf_map / tf_map.norm(dim=1, keepdim=True)
-                ######### Recover the energy of estimated tfmap feature
+                # Recover the energy of estimated tfmap feature
                 tf_map = (
                     torch.sum(mix_mag_ori * tf_map, dim=1, keepdim=True) 
                     * tf_map
@@ -407,8 +407,8 @@ class BSRNN_Feats(nn.Module):
                 # tf_map = tf_map * mix_mag_ori.norm(dim=1, keepdim=True)
 
                 spec_RI = torch.cat((spec_RI, tf_map.unsqueeze(1)), dim=1)
-            
-            if self.spectral_feat=='tfmap_emb': #Only supports Ecapa-TDNN model.
+
+            if self.spectral_feat == 'tfmap_emb':  # Only Ecapa-TDNN.
                 with torch.no_grad():
                     signal_dim = wav_input.dim()
                     extended_shape = (
@@ -454,12 +454,12 @@ class BSRNN_Feats(nn.Module):
                     spk_emb = apply_cmvn(spk_emb)
 
                 spk_emb = self.spk_model(spk_emb)
-                if isinstance(spk_emb,tuple):
+                if isinstance(spk_emb, tuple):
                     spk_emb_frame = spk_emb[0]
                 else:
                     spk_emb_frame = spk_emb
                 mix_emb = self.spk_model(mix_emb)
-                if isinstance(mix_emb,tuple):
+                if isinstance(mix_emb, tuple):
                     mix_emb_frame = mix_emb[0]
                 else:
                     mix_emb_frame = mix_emb
@@ -467,20 +467,20 @@ class BSRNN_Feats(nn.Module):
                 mix_emb_frame_ = F.normalize(mix_emb_frame, p=2, dim=1)
                 spk_emb_frame_ = F.normalize(spk_emb_frame, p=2, dim=1)
 
-                mix_emb_frame_ = mix_emb_frame_.transpose(1,2)
+                mix_emb_frame_ = mix_emb_frame_.transpose(1, 2)
                 att_scores = torch.matmul(mix_emb_frame_, spk_emb_frame_)
                 att_weights = F.softmax(att_scores, dim=-1)
 
                 mix_mag_ori = torch.abs(spec)
                 enroll_mag = torch.abs(aux_c)
 
-                enroll_mag = enroll_mag.transpose(1,2)
+                enroll_mag = enroll_mag.transpose(1, 2)
                 # enroll_mag = F.normalize(enroll_mag, p=2, dim=1)
                 tf_map = torch.matmul(att_weights, enroll_mag)
-                tf_map = tf_map.transpose(1,2)
+                tf_map = tf_map.transpose(1, 2)
 
                 tf_map = tf_map / tf_map.norm(dim=1, keepdim=True)
-                ######### Recover the energy of estimated tfmap feature
+                # Recover the energy of estimated tfmap feature
                 tf_map = (
                     torch.sum(mix_mag_ori * tf_map, dim=1, keepdim=True) 
                     * tf_map
@@ -531,7 +531,7 @@ class BSRNN_Feats(nn.Module):
 
             if self.spk_fuse_type and self.spk_fuse_type.startswith("cross_"):
                 tmp_spk_emb_input = self.spk_model._get_frame_level_feat(
-                                    spk_emb_input)
+                    spk_emb_input)
             else:
                 tmp_spk_emb_input = self.spk_model(spk_emb_input)
             if isinstance(tmp_spk_emb_input, tuple):
@@ -543,7 +543,7 @@ class BSRNN_Feats(nn.Module):
         spk_embedding = self.spk_transform(spk_emb_input)
         if self.spk_fuse_type and not self.spk_fuse_type.startswith("cross_"):
             spk_embedding = spk_embedding.unsqueeze(1).unsqueeze(3)
-        
+
         sep_output = self.separator(subband_feature, spk_embedding,
                                     torch.tensor(nch))
 

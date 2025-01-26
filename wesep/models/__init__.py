@@ -13,7 +13,7 @@ def get_model(model_name: str):
     elif model_name.startswith("BSRNN_Multi"):
         return getattr(bsrnn_multi, model_name)
     elif model_name.startswith("BSRNN_Feats"):
-        return getattr(bsrnn_feats, model_name)    
+        return getattr(bsrnn_feats, model_name)
     elif model_name.startswith("BSRNN"):
         return getattr(bsrnn, model_name)
     elif model_name.startswith("DPCCN"):

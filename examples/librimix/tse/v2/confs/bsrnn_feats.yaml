@@ -60,7 +60,7 @@ model_args:
     spk_model: ECAPA_TDNN_GLOB_c512
     spk_model_init: ./wespeaker_models/voxceleb_ECAPA512/avg_model.pt
     spk_args:
-      embed_dim: &embed_dim 192     
+      embed_dim: &embed_dim 192
       feat_dim: 80
       pooling_func: ASTP
     #################################################################

@@ -209,11 +209,11 @@ class BSRNN_Feats(nn.Module):
         stride=128,
         feature_dim=128,
         num_repeat=6,
-        use_spk_transform=True,
+        use_spk_transform=False,
         use_bidirectional=True,
         spectral_feat=False,
         spk_fuse_type="concat",
-        multi_fuse=True,
+        multi_fuse=False,
         joint_training=True,
         multi_task=False,
         spksInTrain=251,
@@ -588,7 +588,14 @@ if __name__ == "__main__":
         stride=128,
         feature_dim=128,
         num_repeat=6,
-        spk_fuse_type="additive",
+        spectral_feat= 'tfmap_emb',
+        spk_fuse_type= 'cross_multiply',
+        spk_model="ECAPA_TDNN_GLOB_c512",
+        spk_args={
+            "embed_dim":192,
+            "feat_dim":80,
+            "pooling_func":"ASTP",
+        }
     )
 
     s = 0
@@ -596,9 +603,9 @@ if __name__ == "__main__":
         s += np.product(param.size())
     print("# of parameters: " + str(s / 1024.0 / 1024.0))
     x = torch.randn(4, 32000)
-    spk_embeddings = torch.randn(4, 256)
+    spk_embeddings = torch.randn(4, 16000)
     output = model(x, spk_embeddings)
-    print(output.shape)
+    print(output[0].shape)
 
     macs, params = profile(model, inputs=(x, spk_embeddings))
     macs, params = clever_format([macs, params], "%.3f")

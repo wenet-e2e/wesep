@@ -588,13 +588,13 @@ if __name__ == "__main__":
         stride=128,
         feature_dim=128,
         num_repeat=6,
-        spectral_feat= 'tfmap_emb',
-        spk_fuse_type= 'cross_multiply',
+        spectral_feat='tfmap_emb',
+        spk_fuse_type='cross_multiply',
         spk_model="ECAPA_TDNN_GLOB_c512",
         spk_args={
-            "embed_dim":192,
-            "feat_dim":80,
-            "pooling_func":"ASTP",
+            "embed_dim": 192,
+            "feat_dim": 80,
+            "pooling_func": "ASTP",
         }
     )
 

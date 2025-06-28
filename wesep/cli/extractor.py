@@ -140,10 +140,11 @@ class Extractor:
                     pcm_enroll, sample_rate=self.resample_rate, cmn=True
                 )
                 feats = feats.unsqueeze(0)
-                feats = feats.to(self.device)
             else:
                 feats = pcm_enroll
 
+            feats = feats.to(self.device)
+            pcm_mix = pcm_mix.to(self.device)
             with torch.no_grad():
                 outputs = self.model(pcm_mix, feats)
                 outputs = outputs[0] if isinstance(outputs, (list, tuple)) else outputs

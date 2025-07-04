@@ -68,7 +68,7 @@ def tar_file_and_group(data):
         data: Iterable[{src, stream}]
 
     Returns:
-        Iterable[{key, mix_wav, spk1_wav, spk2_wav, ..., sample_rate}]
+        Iterable[{key, wav_mix, wav_spk1, wav_spk2, ..., spk1, spk2, ..., num_speaker, sample_rate}]
     """
     for sample in data:
         assert "stream" in sample
@@ -78,7 +78,7 @@ def tar_file_and_group(data):
         # the file reading method here does not use streaming.
         prev_prefix = None
         example = {}
-        num_speakers = 0
+        num_speaker = 0
         valid = True
         for tarinfo in stream:
             name = tarinfo.name
@@ -88,8 +88,8 @@ def tar_file_and_group(data):
             if prev_prefix is not None and prev_prefix not in prefix:
                 example["key"] = prev_prefix
                 if valid:
-                    example["num_speaker"] = num_speakers
-                    num_speakers = 0
+                    example["num_speaker"] = num_speaker
+                    num_speaker = 0
                     yield example
                 example = {}
                 valid = True
@@ -98,7 +98,7 @@ def tar_file_and_group(data):
                     if "spk" in postfix:
                         example[postfix] = (
                             file_obj.read().decode("utf8").strip())
-                        num_speakers += 1
+                        num_speaker += 1
                     elif postfix in AUDIO_FORMAT_SETS:
                         waveform, sample_rate = torchaudio.load(file_obj)
                         if prefix[-5:-1] == "_spk":
@@ -116,8 +116,8 @@ def tar_file_and_group(data):
 
         if prev_prefix is not None:
             example["key"] = prev_prefix
-            example["num_speaker"] = num_speakers
-            num_speakers = 0
+            example["num_speaker"] = num_speaker
+            num_speaker = 0
             yield example
         stream.close()
         if "process" in sample:
@@ -207,21 +207,20 @@ def parse_raw_single_spk(data):
             logging.warning("Failed to read {}".format(wav_file))
 
 
-def mix_speakers(data, num_speaker=2, shuffle_size=1000):
+def mix_speakers(data, num_speaker=2, buffer_size=1000):
     """Dynamic mixing speakers when loading data,
     shuffle is not needed if this function is used
     Args:
         :param data: Iterable[{key, wavs, spks}]
         :param num_speaker:
-        :param use_random_snr:
-        :param shuffle_size:
+        :param buffer_size:
     Returns:
-        Iterable[{key, wav_mix, wav_spk1, wav_spk2, ..., spk1, spk2, ...}]
+        Iterable[{key, wav_spk1, wav_spk2, ..., spk1, spk2, ..., sample_rate}]
     """
     buf = []
     for sample in data:
         buf.append(sample)
-        if len(buf) >= shuffle_size:
+        if len(buf) >= buffer_size:
             random.shuffle(buf)
             for x in buf:
                 cur_spk = x["spk"]
@@ -432,8 +431,8 @@ def sample_enrollment(data, spk_embeds, dict_spk):
         spk_embeds: dict which stores all potential enrollment utterance files(/.wav) for the speaker  # noqa
         dict_spk: dict of speakers in the enrollment sets [Order: spkID]
     Returns:
-        Iterable[{key, wav, label, sample_rate, spk_embed(raw waveform of enrollment),  # noqa
-                  spk_lable(when multi-task training)}]
+        Iterable[{key, wav, label, sample_rate, embed_spk(raw waveform of enrollment),  # noqa
+                  spk_label(when multi-task training)}]
     """
     for sample in data:
         all_keys = list(sample.keys())
@@ -628,6 +627,7 @@ def random_chunk(data, chunk_len):
         yield sample
 
 
+# hongji: This func is not used in current version
 def fix_chunk(data, chunk_len):
     """Random chunk the data into chunk_len
 

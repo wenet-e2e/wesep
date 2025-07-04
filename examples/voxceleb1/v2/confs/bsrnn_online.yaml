@@ -1,5 +1,5 @@
 dataloader_args:
-  batch_size: 8
+  batch_size: 4 # for V100-32GB # 8
   drop_last: true
   num_workers: 6
   pin_memory: false
@@ -17,7 +17,9 @@ dataset_args:
       max_num_seconds: 100.0
   chunk_len: 48000
   online_mix: true
-  num_speakers: 2
+  online_mix_args:
+    num_speaker: 2
+    buffer_size: 1000
   use_random_snr: true
   speaker_feat: &speaker_feat True
   fbank_args:
@@ -50,7 +52,7 @@ model_args:
     spk_fuse_type: 'multiply'
     use_spk_transform: False
     multi_fuse: False        # Fuse the speaker embedding multiple times.
-    joint_training: True
+    joint_training: True  # Always set True, use "spk_model_freeze" to control if use pre-trained speaker encoders
     ####### ResNet    The pretrained speaker encoders are available from: https://github.com/wenet-e2e/wespeaker/blob/master/docs/pretrained.md
     spk_model: ResNet34 # ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
     spk_model_init: False #./wespeaker_models/voxceleb_resnet34/avg_model.pt

@@ -320,12 +320,12 @@ def Dataset(
     else:
         dataset = Processor(dataset, processor.parse_raw)
 
-    if configs.get("filter_len", False) and state == "train":
+    if online_mix and configs.get("filter_len", False) and state == "train":
         # Filter the data with unwanted length
         filter_conf = configs.get("filter_args", {})
         dataset = Processor(dataset, processor.filter_len, **filter_conf)
     # Local shuffle
-    if shuffle and not online_mix:
+    if not online_mix and shuffle:
         dataset = Processor(dataset, processor.shuffle,
                             **configs["shuffle_args"])
 
@@ -339,12 +339,8 @@ def Dataset(
         dataset = Processor(dataset, processor.random_chunk, chunk_len)
 
     if online_mix:
-        dataset = Processor(
-            dataset,
-            processor.mix_speakers,
-            configs.get("num_speakers", 2),
-            configs.get("online_buffer_size", 1000),
-        )
+        dataset = Processor(dataset, processor.mix_speakers,
+                            **configs["online_mix_args"])
         if reverb_prob > 0:
             dataset = Processor(dataset, processor.add_reverb, reverb_prob)
         dataset = Processor(

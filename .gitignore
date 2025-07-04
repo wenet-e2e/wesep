@@ -39,3 +39,5 @@ raw_wav
 tensorboard
 **/*build*
 wespeaker_models
+wespeaker
+DNSMOS

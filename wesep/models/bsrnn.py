@@ -405,6 +405,11 @@ if __name__ == "__main__":
         feature_dim=128,
         num_repeat=6,
         spk_fuse_type="additive",
+        joint_training=True,
+        spk_model="ResNet34",
+        spk_model_init=False,
+        spk_args={"feat_dim":80, "embed_dim": 256, "pooling_func": "TSTP", "two_emb_layer": False},
+        spk_feat=True,
     )
 
     s = 0
@@ -412,10 +417,13 @@ if __name__ == "__main__":
         s += np.product(param.size())
     print("# of parameters: " + str(s / 1024.0 / 1024.0))
     x = torch.randn(4, 32000)
-    spk_embeddings = torch.randn(4, 256)
-    output = model(x, spk_embeddings)
-    print(output.shape)
+    #spk_embeddings = torch.randn(4, 256)
+    #output = model(x, spk_embeddings)
+    spk_feats = torch.randn(4, 300, 80)
+    output = model(x, spk_feats)
+    print(output[0].shape)
 
-    macs, params = profile(model, inputs=(x, spk_embeddings))
+    #macs, params = profile(model, inputs=(x, spk_embeddings))
+    macs, params = profile(model, inputs=(x, spk_feats))
     macs, params = clever_format([macs, params], "%.3f")
     print(macs, params)

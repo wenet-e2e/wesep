@@ -236,6 +236,8 @@ def train(config="conf/config.yaml", **kwargs):
         "tse_model"]["initial_lr"]
     optimizer = getattr(torch.optim, configs["optimizer"]["tse_model"])(
         ddp_model.parameters(), **configs["optimizer_args"]["tse_model"])
+    ## 2. 收集需要更新的参数（仅包含requires_grad=True的参数）
+    ##params_to_update = [p for p in model.parameters() if p.requires_grad]
     if rank == 0:
         logger.info("<== TSE Model Optimizer ==>")
         logger.info("optimizer is: " + configs["optimizer"]["tse_model"])

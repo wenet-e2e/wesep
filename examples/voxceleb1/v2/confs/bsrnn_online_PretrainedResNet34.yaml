@@ -55,7 +55,7 @@ model_args:
     joint_training: True  # Always set True, use "spk_model_freeze" to control if use pre-trained speaker encoders
     ####### ResNet    The pretrained speaker encoders are available from: https://github.com/wenet-e2e/wespeaker/blob/master/docs/pretrained.md
     spk_model: ResNet34 # ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
-    spk_model_init: False #./wespeaker_models/voxceleb_resnet34/avg_model.pt
+    spk_model_init: ./wespeaker_models/voxceleb_resnet34/avg_model.pt
     spk_args:
       feat_dim: 80
       embed_dim: &embed_dim 256
@@ -77,7 +77,7 @@ model_args:
     #   pooling_func: "TSTP" # TSTP, ASTP, MQMHASTP
     #################################################################
     spk_emb_dim: *embed_dim
-    spk_model_freeze: False    # Related to train TSE model with pre-trained speaker encoder, Control if freeze the weights in speaker encoder
+    spk_model_freeze: True    # Related to train TSE model with pre-trained speaker encoder, Control if freeze the weights in speaker encoder
     spk_feat: *speaker_feat   #if do NOT wanna process the feat when processing data, set &speaker_feat to False, then the feat_type will be used
     feat_type: "consistent"
     multi_task: False

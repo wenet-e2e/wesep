@@ -7,6 +7,10 @@
 stage=-1
 stop_stage=-1
 
+HOST_NODE_ADDR="localhost:29402"
+num_nodes=1
+job_id=2025
+
 data=data
 fs=16k
 min_max=min
@@ -16,11 +20,11 @@ Vox1_dir=/YourPATH/voxceleb/VoxCeleb1/wav
 Libri2Mix_dir=/YourPATH/librimix/Libri2Mix          #For validate and test the TSE model.
 mix_data_path="${Libri2Mix_dir}/wav${fs}/${min_max}"
 
-gpus="[0,1]"
-num_avg=10
+gpus="[0,1,2,3]"
+num_avg=5 #10
 checkpoint=
-config=confs/bsrnn_online.yaml
-exp_dir=exp/BSRNN_Online/no_spk_transform_multiply
+config=confs/bsrnn_online.yaml #_PretrainedResNet34.yaml
+exp_dir=exp/BSRNN_Online/no_spk_transform_multiply #_PretrainedResNet34
 save_results=true
 
 
@@ -50,7 +54,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         ${data}/$dset/shards_online ${data}/$dset/shard_online.list
   done
   for dset in dev test; do
-    python tools/make_shard_list_premix.py --num_utts_per_shard 1000 \
+    python tools/make_shard_list_premix.py --num_utts_per_shard 48 \
       --num_threads 16 \
       --prefix shards \
       --shuffle \
@@ -62,16 +66,14 @@ fi
 if [ -z "${checkpoint}" ] && [ -f "${exp_dir}/models/latest_checkpoint.pt" ]; then
   checkpoint="${exp_dir}/models/latest_checkpoint.pt"
 fi
-
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   #  rm -r $exp_dir
   echo "Start training ..."
   export OMP_NUM_THREADS=8
   num_gpus=$(echo $gpus | awk -F ',' '{print NF}')
-  if [ -z "${checkpoint}" ] && [ -f "${exp_dir}/models/latest_checkpoint.pt" ]; then
-    checkpoint="${exp_dir}/models/latest_checkpoint.pt"
-  fi
-  torchrun --standalone --nnodes=1 --nproc_per_node=$num_gpus \
+  #torchrun --standalone --nnodes=1 --nproc_per_node=$num_gpus \
+  torchrun --nnodes=$num_nodes --nproc_per_node=$num_gpus \
+           --rdzv_id=$job_id --rdzv_backend="c10d" --rdzv_endpoint=$HOST_NODE_ADDR \
     wesep/bin/train.py --config $config \
     --exp_dir ${exp_dir} \
     --gpus $gpus \
@@ -96,12 +98,15 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     --src_path $exp_dir/models \
     --num ${num_avg} \
     --mode best \
-    --epochs "138,141"
+    --epochs "121,129,130,141,144" # no_spk_transform_multiply, 19200:bs(4)*ngpus(4)*iters(1200), SI-SNR: 13.80
+    #--epochs "125,129,130,142,144" # no_spk_transform_multiply_PretrainedResNet34JointTrain, 19200:bs(4)*ngpus(4)*iters(1200), SI-SNR: 13.49
+    #--epochs "129,140,141,146,149"  # no_spk_transform_multiply_PretrainedResNet34, 19200:bs(4)*ngpus(4)*iters(1200), SI-SNR: 14.67
+    #--epochs "88,101,102,104,106"  # no_spk_transform_multiply.bak, 每个epoch跑vox1-dev全量数据:~bs(4)*ngpus(8)*iters(2300), SI-SNR: 15.20
 fi
+
 if [ -z "${checkpoint}" ] && [ -f "${exp_dir}/models/avg_best_model.pt" ]; then
   checkpoint="${exp_dir}/models/avg_best_model.pt"
 fi
-
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
   python wesep/bin/infer.py --config $config \
       --gpus 0 \
@@ -115,4 +120,5 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
       ${checkpoint:+--checkpoint $checkpoint}
 fi
 
-#./run.sh --stage 4 --stop-stage 4 --config exp/BSRNN/train_clean_460/multiply_no_spk_transform/config.yaml  --exp_dir exp/BSRNN/train_clean_460/multiply_no_spk_transform/ --checkpoint exp/BSRNN/train_clean_460/multiply_no_spk_transform/models/avg_best_model.pt
+#./run.sh --stage 4 --stop-stage 4 --exp_dir exp/BSRNN/train_clean_460/multiply_no_spk_transform/
+#./run.sh --stage 5 --stop-stage 5 --config exp/BSRNN/train_clean_460/multiply_no_spk_transform/config.yaml  --exp_dir exp/BSRNN/train_clean_460/multiply_no_spk_transform/ --checkpoint exp/BSRNN/train_clean_460/multiply_no_spk_transform/models/avg_best_model.pt

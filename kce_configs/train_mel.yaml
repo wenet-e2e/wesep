@@ -1,0 +1,178 @@
+# a copy of AEDKeywordASRPhoneBPECnovNoCross.yaml
+
+# experimental config
+exp_config:
+  trained_ckpt: '' # exp/no_bpe-num_mel_bins_80-dither_0-batch_64-860/0.5_sv-0.01_reg-learnable_weights.prev/kwatt_asr_38.pt  #dither_0-batch_64-softmax
+  exp_dir: exp/laura-tse/mel_spec-ls460_ctc1_las0_multiMatch0_zeroMatch0_fillerlabelForNeg0_bs48_epoch150_lr1e-3_sInterference1_nInterference0
+  warm_up_peak_epoch: 10
+  checkpoint_name: kwatt_asr
+  optim_config:
+    lr: 0.001
+  log_config:
+    level: "INFO"
+    filemode: "a"
+    format:  "%(asctime)s: %(message)s"
+  log_interval: 5
+  valid_interval: 100
+  max_best_ckpt_to_keep: 20
+
+# data config
+data_config: 
+  epoch: 150 #200
+  start_epoch: 0
+  shuffle: True
+  num_workers: 4 #18
+  speech_config: 
+    data_type: raw
+    feats_type: mel_spec
+    feats_config:
+      n_fft: 512
+      hop_size: 256
+      log_mel: True
+    speech_interference:
+      use: True
+      num_corrupt: 1
+      sampler: uniform
+      sampler_config:
+        low: 0.1
+        high: 0.9
+    noise_interference:
+      use: False
+      num_corrupt: 1
+      prob: 0.5
+      corrupt_list: aishell_ke_data/noise.cutted.scp
+      sampler: uniform
+      sampler_config:
+        low: 0.2
+    mix_config:
+      max_or_min: max   # max or min
+      wav_shift_type: fixed_shift_duration # or flexiable_shift_duration
+      wav_shift_config:
+        wav_shift_prob: 0.3
+        shift_seconds: 3  # in seconds
+        sampler: uniform
+        sampler_config:
+          low: 0.0
+          high: 1.0
+    post_feats_config:
+      use: False
+      splice_config:
+        left_context: 5
+        right_context: 5
+      subsample_rate: 3 # frame skip
+    return_raw: True
+  sv_config:
+    spk2cls: data/librispeech/spk2cls.460.json #data/librispeech/spk2cls.json
+  meta_save_config:
+    use: False
+    save_dir: xxx
+
+  keyword_selection_conf:
+    selection_strategy: random_sample # or fixed_selection_from_jsonl
+    config:
+      use_filler_label_for_neg: False #True #False
+      positive_prob: 1
+      sample_config:
+        keyword_length_range: [2,6]
+        continuous: True
+      special_token: 
+        sok: 5002
+        eok: 5003
+        unk: 1
+        psok: 71
+        peok: 72
+        punk: 73
+        with_trans: True
+  predefined_keyword_config: 
+    train:
+      kwd2uttids_jsonl: data/kwd2uttids_jsonl/train-860.jsonl
+      pick_predefined_prob: 0
+    valid:
+      kwd2uttids_jsonl: data/kwd2uttids_jsonl/train-100.jsonl
+      pick_predefined_prob: 0
+    # there maybe test field in the future.
+    # test:
+      # kwd2uttids_jsonl: 
+      # pick_predefined_prob: 
+  length_key: mixspeech,speech,keyword
+  fetch_key: mixspeech,mixspeech_len,phn_label,phn_label_len,keyword,keyword_len,bpe_label,bpe_label_len,target,spk_label
+  batch_size: 48 # 64
+  train_list: data/librispeech/datalist/train.460.jsonl #train.860.jsonl
+  valid_list: data/librispeech/datalist/dev-clean.jsonl #valid.jsonl
+ 
+# model config
+model_arch: AEDKWSASRPhone
+model_config:
+  d_model: &d_model 256
+  d_ff: &d_ff 2048 
+
+  audio_net_config:
+    input_trans: # &linear_common
+      dim: [*d_model, *d_model]
+      num_block: 1
+      norm: LayerNorm
+      act: ReLU
+    transformer_config: 
+      size: *d_model
+      self_att: MultiHeadAtt
+      self_att_config: &att_common
+        n_head: 4
+        n_feats: *d_model
+      cross_att: MultiHeadCrossAtt
+      corss_att_config: 
+        n_head: 1
+        n_feats: *d_model
+        norm: LayerNorm
+      feed_forward_config: &feed_forward_common
+        dim: [*d_model, *d_ff, *d_model]
+        num_block: 1
+        norm: LayerNorm
+        act: ReLU
+      conv_config:
+        channels: *d_model
+
+  kw_net_config:
+    num_bpe_token: 5005 # 0;1: blank; phone: 1,69;71 special token [71,72];73, sos/eos 73,74;75
+    num_phn_token: 74
+    input_trans: 
+      dim: *d_model
+      num_block: 1
+      norm: LayerNorm
+      act: ReLU
+    transformer_config:
+      size: *d_model
+      self_att: MultiHeadAtt
+      self_att_config: *att_common
+      feed_forward_config: *feed_forward_common
+  decoder_net_config:
+    input_trans: 
+      dim: *d_model
+      num_block: 1
+      norm: LayerNorm
+      act: ReLU
+    transformer_config:
+      size: *d_model
+      self_att: MultiHeadAtt
+      self_att_config: *att_common
+      cross_att: MultiHeadCrossAtt
+      corss_att_config: 
+        n_head: 1
+        n_feats: *d_model
+        norm: LayerNorm
+      feed_forward_config: *feed_forward_common
+  sv_net_config:
+    num_classes: 2338 # ls-960
+    front_output_size: *d_model
+    pooling_conf:
+      type: 'learnable_weights' # 'mean'  # 'learnable_weights'
+      layer_indices: [0,1,2,3,4,5,6,7,8]
+      use_softmax: True
+  num_audio_block: 9
+  num_kw_block: 4
+  sos: 2
+  eos: 5004
+  num_doecoder_block: 4
+  loss_weight:
+    phn_ctc: 1 
+    sv_ce: 0.5
+

@@ -47,6 +47,15 @@ and creates explicit `samples.jsonl`, `raw.list`, and `cues.yaml` files for
 `train`, `val`, and `test`. The selected cue representation and model config
 must match.
 
+`/path/to/visual_frontend.pt ` is from Pre-trained Weights of the repo 'https://github.com/smeetrs/deep_avsr'
+You also download it via the huggingface:
+```
+pip install huggingface_hub
+mkdir ./pretrain_networks
+hf download shuanguanma/DeepAVSR_Weights visual_frontend.pt --local-dir./pretrain_networks/
+
+```
+
 Raw MP4 decoding uses more host memory and data-loader time. Adjust batch size,
 worker count, and prefetching according to the available host and GPU memory.
 

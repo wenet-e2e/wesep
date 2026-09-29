@@ -18,6 +18,16 @@ voxceleb2mix_root=          # Generated min-length VoxCeleb2Mix root
 mixture_manifest=
 visual_frontend=raw_video   # raw_video keeps MP4 cues; muse precomputes features
 visual_frontend_checkpoint= # Checkpoint required by the selected frontend
+                            # this checkpoint is from Pre-trained Weights of
+			                #  the repo 'https://github.com/smeetrs/deep_avsr'
+                            # You also download it via the huggingface:
+                            # ```
+                            # pip install huggingface_hub
+                            # mkdir ./pretrain_networks
+                            # hf download shuanguanma/DeepAVSR_Weights visual_frontend.pt \
+			                #    --local-dir./pretrain_networks/
+			                # ```
+
 visual_device=cuda
 
 # Stage 1: WeSep lists from the generated dataset root

@@ -1,9 +1,11 @@
 dataloader_args:
   batch_size: 6   #A100_40g: 6
   drop_last: true
-  num_workers: 4
+  # 2 ranks x 4 workers x prefetch 4 + full-MP4 decode OOMs workers (SIGKILL).
+  # Keep batch_size; decode windowing is in processor_visual.py.
+  num_workers: 2
   pin_memory: true
-  prefetch_factor: 4
+  prefetch_factor: 2
 
 dataset_args:
   resample_rate: &sr 16000

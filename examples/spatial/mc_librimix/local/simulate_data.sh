@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-config=confs/data/respeaker_4mic_16k.yaml
+config=confs/simulation/respeaker_4mic_16k.yaml
 librimix_root=
 output_root=
 split=all

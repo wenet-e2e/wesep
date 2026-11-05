@@ -1,6 +1,6 @@
 # Spatial Multichannel LibriMix Recipe
 
-> Last updated: 2026-09-21
+> Last updated: 2026-11-05
 
 This Linux recipe derives a fixed 16 kHz, four-channel spatial dataset from
 the official Libri2Mix `wav16k/min` sources. The microphone geometry follows
@@ -23,8 +23,10 @@ Linux installation of `gpuRIR`.
 
 ## Stages
 
-Stage 0 recreates the deterministic scenario manifest, generates early and
-fully reverberant waveforms, and exports standard spatial NPY cues.
+Stage 0 recreates the deterministic scenario manifest, generates the configured
+waveform variants, and exports standard spatial NPY cues. The default config
+generates fully reverberant mixtures (`mix_reverb`) and early source targets
+(`s1_early` and `s2_early`).
 Stage 1 selects which generated waveform conditions to use and creates WeSep
 `samples.jsonl`, `raw.list`, and `cues.yaml` files. It does not read the room
 scenario manifest. Later stages create shards, train, infer, and score.
@@ -41,9 +43,9 @@ Run the data stages from this recipe directory:
 ./run.sh --stage 0 --stop_stage 1 \
   --librimix_root /path/to/Libri2Mix/wav16k/min \
   --mc_librimix_root /path/to/WeSep-MC-LibriMix/wav16k/min \
-  --simulation_config confs/data/respeaker_4mic_16k.yaml \
+  --simulation_config confs/simulation/respeaker_4mic_16k.yaml \
   --mix_condition reverb \
-  --target_condition reverb
+  --target_condition early
 ```
 
 The simulation config is exposed by `run.sh` because it defines the array,
@@ -57,15 +59,16 @@ During Stage 1, `mix_condition` and `target_condition` independently select
 `early` or `reverb`. For example, `early/early` compares a lightly reverberant
 multichannel task, while `reverb/early` trains separation with dereverberation.
 These choices affect the generated WeSep sample list, not the simulated
-waveform directories.
+waveform directories. To select another condition, first enable its corresponding
+`outputs` flag in the simulation config and generate those waveforms with Stage 0.
 
-Stage 0 writes generated waveform variants as:
+With the default simulation config, Stage 0 writes:
 
 ```text
 <mc_librimix_root>/
-  train-100/{mix_early,mix_reverb,s1_early,s1_reverb,s2_early,s2_reverb,cues}/
-  dev/{mix_early,mix_reverb,s1_early,s1_reverb,s2_early,s2_reverb,cues}/
-  test/{mix_early,mix_reverb,s1_early,s1_reverb,s2_early,s2_reverb,cues}/
+  train-100/{mix_reverb,s1_early,s2_early,cues}/
+  dev/{mix_reverb,s1_early,s2_early,cues}/
+  test/{mix_reverb,s1_early,s2_early,cues}/
 ```
 
 Each `cues/spatial.json` uses `mixture_id::speaker_id` keys and points to NPY
@@ -84,7 +87,7 @@ without a simulation manifest when it provides directories matching the selected
   --mc_librimix_root /path/to/standard/multichannel-dataset \
   --data data/custom \
   --mix_condition reverb \
-  --target_condition reverb
+  --target_condition early
 ```
 
 Angles in the scenario CSV are stored in degrees for readability. Spatial NPY

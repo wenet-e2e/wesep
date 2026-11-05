@@ -1,0 +1,57 @@
+version: 1
+
+dataset:
+  seed: 17
+  splits: [train-100, dev, test]
+  max_sampling_attempts: 1000
+
+audio:
+  sample_rate: 16000
+
+room:
+  dimensions:
+    min: [4.0, 4.0, 2.5]
+    max: [10.0, 10.0, 4.0]
+  rt60:
+    min: 0.2
+    max: 0.6
+  boundary_margin: 0.3
+
+array:
+  # ReSpeaker USB four-microphone order viewed from the front.
+  mic_positions:
+    - [0.02285, 0.02285, 0.0]
+    - [-0.02285, 0.02285, 0.0]
+    - [-0.02285, -0.02285, 0.0]
+    - [0.02285, -0.02285, 0.0]
+  height:
+    min: 0.5
+    max: 1.5
+  rotation_deg:
+    min: 0.0
+    max: 360.0
+
+sources:
+  num_speakers: 2
+  azimuth_deg:
+    min: 0.0
+    max: 360.0
+  min_azimuth_difference_deg: 0.0
+  horizontal_distance:
+    min: 0.3
+    max: 2.5
+  height:
+    min: 0.6
+    max: 1.9
+
+rir:
+  sound_speed: 343.0
+  early_window_ms: 50.0
+  preserve_time_of_flight: true
+
+# Default task: reverberant mixtures with early source targets.
+outputs:
+  early_source: true
+  early_mixture: false
+  reverb_source: false
+  reverb_mixture: true

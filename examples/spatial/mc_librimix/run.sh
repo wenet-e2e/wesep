@@ -14,7 +14,7 @@ stop_stage=-1
 # gpuRIR uses CUDA_VISIBLE_DEVICES; the gpus option below controls training only.
 librimix_root=/YourPATH/librimix/Libri2Mix  # Existing single-channel Libri2Mix root
 mc_librimix_root=  # Generated multichannel Libri2Mix root
-simulation_config=confs/data/respeaker_4mic_16k.yaml
+simulation_config=confs/simulation/respeaker_4mic_16k.yaml
 
 # Stage 1: WeSep audio and spatial cue indexes
 data=data

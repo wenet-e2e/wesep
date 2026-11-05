@@ -1,22 +1,64 @@
-# Wesep
+# WeSep 2024
 
-> We aim to build a toolkit focusing on front-end processing in the cocktail party set up, including target speaker extraction and ~~speech separation (Future work)~~
+This branch contains the WeSep toolkit accompanying the Interspeech 2024 paper,
+with target speaker extraction models, training and inference code, and LibriMix
+and VoxCeleb recipes. Model architectures are in [`wesep/models`](wesep/models),
+and experiment scripts are in [`examples`](examples).
 
+For the current toolkit, see the
+[`master` branch](https://github.com/wenet-e2e/wesep/tree/master).
 
-### Install for development & deployment
-* Clone this repo
-``` sh
-https://github.com/wenet-e2e/wesep.git
+## Download
+
+Clone the 2024 version into its own directory:
+
+```sh
+git clone --branch wesep_2024 --single-branch \
+  https://github.com/wenet-e2e/wesep.git wesep_2024
+cd wesep_2024
 ```
 
-* Create conda env: pytorch version >= 1.12.0 is required !!!
-``` sh
-conda create -n wesep python=3.9
-conda activate wesep
+For an existing clone, create a local branch tracking the 2024 version:
+
+```sh
+git fetch origin
+git switch --track origin/wesep_2024
+```
+
+To download a ZIP, open the
+[`wesep_2024` branch](https://github.com/wenet-e2e/wesep/tree/wesep_2024),
+select **Code > Download ZIP**, and extract the archive. Open a terminal in the
+extracted directory to follow the installation steps below.
+
+## Installation
+
+Create a dedicated environment with Python 3.9, PyTorch 1.12.1, and
+TorchAudio 0.12.1. Run these commands from the repository root:
+
+```sh
+conda create -n wesep_2024 python=3.9
+conda activate wesep_2024
 conda install pytorch=1.12.1 torchaudio=0.12.1 cudatoolkit=11.3 -c pytorch -c conda-forge
 pip install -r requirements.txt
-pre-commit install  # for clean and tidy code
 ```
+
+For development in a Git checkout, enable the formatting hooks:
+
+```sh
+pre-commit install
+```
+
+## Recipes
+
+Start with the [LibriMix v2 tutorial](examples/librimix/tse/v2/README.md) for
+step-by-step data preparation, training, inference, and scoring. Set the dataset
+paths and GPU selection in the recipe before running its stages.
+
+- [LibriMix v2](examples/librimix/tse/v2/README.md)
+- [LibriMix v1](examples/librimix/tse/v1/README.md)
+- [VoxCeleb online training](examples/voxceleb1/v2/run_online.sh)
+
+Run each recipe from its own directory, as shown in its instructions.
 
 ## The Target Speaker Extraction Task
 
@@ -70,7 +112,7 @@ For Chinese users, you can scan the QR code on the left to join our group direct
 
 
 ## Citations
-If you find wespeaker useful, please cite it as
+If you find WeSep useful, please cite it as
 
 ```bibtex
 @inproceedings{wang24fa_interspeech,

@@ -31,13 +31,6 @@ are under validation and will be released soon.
 | Python wheel and PyPI installation | Planned |
 | ONNX, TorchScript, and C++ deployment | To be updated |
 
-## WeSep 2024
-
-The Interspeech 2024 toolkit is available on the
-[`wesep_2024` branch](https://github.com/wenet-e2e/wesep/tree/wesep_2024),
-including its model architectures, training and inference code, and recipes.
-Follow that branch's README for installation and usage.
-
 ## Installation
 
 The v0.1 research preview is intended to run from a source checkout. A tested
@@ -245,8 +238,8 @@ If you find WeSep useful, please cite the latest framework paper:
 }
 ```
 
-The earlier WeSep toolkit paper corresponds to the implementation and recipes
-on the [`wesep_2024` branch](https://github.com/wenet-e2e/wesep/tree/wesep_2024).
+For the Interspeech 2024 implementation, recipes, and installation instructions,
+see the [WeSep 2024 README](https://github.com/wenet-e2e/wesep/blob/wesep_2024/README.md).
 Cite the following paper when using or comparing against the 2024 version:
 
 ```bibtex

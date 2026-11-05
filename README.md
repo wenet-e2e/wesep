@@ -1,6 +1,6 @@
 # WeSep
 
-> Last updated: 2026-11-05
+> Last updated: 2026-11-06
 
 WeSep is a research toolkit for target speaker extraction (TSE) with speaker,
 spatial, visual, and textual cues. It provides cue-aware data pipelines,
@@ -37,24 +37,6 @@ The Interspeech 2024 toolkit is available on the
 [`wesep_2024` branch](https://github.com/wenet-e2e/wesep/tree/wesep_2024),
 including its model architectures, training and inference code, and recipes.
 Follow that branch's README for installation and usage.
-
-Clone it into a separate directory:
-
-```sh
-git clone --branch wesep_2024 --single-branch \
-  https://github.com/wenet-e2e/wesep.git wesep_2024
-cd wesep_2024
-```
-
-For an existing clone, create a local branch tracking the 2024 version:
-
-```sh
-git fetch origin
-git switch --track origin/wesep_2024
-```
-
-To download a ZIP, open the `wesep_2024` branch linked above and select
-**Code > Download ZIP**.
 
 ## Installation
 

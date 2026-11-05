@@ -1,6 +1,6 @@
 # WeSep
 
-> Last updated: 2026-09-21
+> Last updated: 2026-11-05
 
 WeSep is a research toolkit for target speaker extraction (TSE) with speaker,
 spatial, visual, and textual cues. It provides cue-aware data pipelines,
@@ -30,6 +30,31 @@ are under validation and will be released soon.
 | Official pretrained models and automatic download | Coming soon |
 | Python wheel and PyPI installation | Planned |
 | ONNX, TorchScript, and C++ deployment | To be updated |
+
+## WeSep 2024
+
+The Interspeech 2024 toolkit is available on the
+[`wesep_2024` branch](https://github.com/wenet-e2e/wesep/tree/wesep_2024),
+including its model architectures, training and inference code, and recipes.
+Follow that branch's README for installation and usage.
+
+Clone it into a separate directory:
+
+```sh
+git clone --branch wesep_2024 --single-branch \
+  https://github.com/wenet-e2e/wesep.git wesep_2024
+cd wesep_2024
+```
+
+For an existing clone, create a local branch tracking the 2024 version:
+
+```sh
+git fetch origin
+git switch --track origin/wesep_2024
+```
+
+To download a ZIP, open the `wesep_2024` branch linked above and select
+**Code > Download ZIP**.
 
 ## Installation
 
@@ -238,11 +263,9 @@ If you find WeSep useful, please cite the latest framework paper:
 }
 ```
 
-The earlier WeSep toolkit paper corresponds to the legacy implementation and
-recipes preserved under [`wesep_deprecated`](wesep_deprecated) and
-[`examples_deprecated`](examples_deprecated). These directories are no longer
-maintained and may be removed in a future release. Cite the following paper
-when using or comparing against that legacy version:
+The earlier WeSep toolkit paper corresponds to the implementation and recipes
+on the [`wesep_2024` branch](https://github.com/wenet-e2e/wesep/tree/wesep_2024).
+Cite the following paper when using or comparing against the 2024 version:
 
 ```bibtex
 @inproceedings{wang24fa_interspeech,

@@ -172,7 +172,7 @@ def main():
     args = get_args()
     if args.pretrain == "":
         if args.bsrnn:
-            model = load_model("bsrnn")
+            model = load_model("english")
         else:
             model = load_model(args.language)
     else:
@@ -184,8 +184,6 @@ def main():
     if args.task == "extraction":
         speech = model.extract_speech(args.audio_file, args.audio_file2)
         if speech is not None:
-            if args.normalize_output:
-                speech = speech / abs(speech).max(dim=1, keepdim=True).values * 0.9
             soundfile.write(args.output_file, speech[0], args.resample_rate)
             print("Succeed, see {}".format(args.output_file))
         else:

@@ -14,6 +14,10 @@ modular model interfaces, and reproducible recipes for academic research.
 Target speaker extraction isolates the speech of a specified target speaker
 from an overlapped multi-talker recording.
 
+For inference with the earlier audio-only TSE models and pretrained checkpoints,
+see [WeSep 2024](https://github.com/wenet-e2e/wesep/tree/wesep_2024)
+for installation and usage.
+
 ## Current Scope
 
 The v0.1 release supports the data preparation and training examples included
@@ -33,57 +37,49 @@ are under validation and will be released soon.
 
 ## Installation
 
-The v0.1 research preview is intended to run from a source checkout. A tested
-wheel/PyPI installation is not available yet.
+Create a Python 3.10 environment and run the installation from the source checkout:
 
 ```sh
 git clone https://github.com/wenet-e2e/wesep.git
 cd wesep
 
-conda create -n wesep python=3.10
+conda create -n wesep python=3.10 pip
 conda activate wesep
 ```
 
-Install a matching PyTorch, TorchAudio, and TorchVision stack for your system
-first. These packages are intentionally not listed in `requirements.txt`
-because their versions and wheel index depend on the CUDA environment.
-
-The current development server uses the following stack with CUDA 12.8:
+Install PyTorch 2.7.1, TorchAudio 2.7.1, and TorchVision 0.22.1 using the CUDA
+wheel index for your machine. For CUDA 11.8 builds, including RTX 2080 Ti and
+NVIDIA V100 systems:
 
 ```sh
-pip install torch==2.7.1 torchaudio==2.7.1 torchvision==0.22.1 \
-  --index-url https://download.pytorch.org/whl/cu128
-```
-
-Use the same package versions with the CUDA 11.8 wheel index on systems such
-as NVIDIA V100:
-
-```sh
-pip install torch==2.7.1 torchaudio==2.7.1 torchvision==0.22.1 \
+python -m pip install torch==2.7.1 torchaudio==2.7.1 torchvision==0.22.1 \
   --index-url https://download.pytorch.org/whl/cu118
 ```
 
-Then install the WeSep dependencies. The speaker-cue models also require
-WeSpeaker, which is installed from its official repository:
+For CUDA 12.8 builds:
 
 ```sh
-pip install git+https://github.com/wenet-e2e/wespeaker.git
-pip install -r requirements.txt
+python -m pip install torch==2.7.1 torchaudio==2.7.1 torchvision==0.22.1 \
+  --index-url https://download.pytorch.org/whl/cu128
 ```
-Install WeSpeaker first, then re-install the pinned WeSep requirements
-so the environment returns to the dependency versions validated by this project.
 
-Keep all three PyTorch packages on the matching release line. Recipe-specific
-external dependencies are installed only when needed:
-WeSpeaker for the speaker-encoder frontends, `gpuRIR` for spatial data
-simulation. ONNX Runtime for DNSMOS scoring, together with the textual and
-raw-video Python dependencies, is included in `requirements.txt`.
-The included `onnxruntime` package uses CPU execution. To run DNSMOS with
-`--dnsmos_use_gpu true`, replace it with an `onnxruntime-gpu` build compatible
-with the local CUDA and cuDNN environment.
+Install WeSep's dependencies in one step. This includes WeSpeaker at the fixed
+release snapshot recorded in `requirements.txt`:
 
-The code-quality tools are included in `requirements.txt`. Enable the Git hooks
-for development with:
+```sh
+python -m pip install -r requirements.txt
+```
+
+The PyTorch versions are also pinned in `requirements.txt`, so this step keeps
+the matching CUDA builds installed above. The remaining runtime dependencies
+are resolved together with WeSpeaker.
+
+Spatial dataset simulation additionally uses `gpuRIR`. DNSMOS scoring uses the
+CPU `onnxruntime` package by default. For GPU scoring, install an
+`onnxruntime-gpu` build matching your CUDA and cuDNN environment in place of
+`onnxruntime`.
+
+Enable the Git hooks when developing the project:
 
 ```sh
 pre-commit install
@@ -239,7 +235,7 @@ If you find WeSep useful, please cite the latest framework paper:
 ```
 
 For the Interspeech 2024 implementation, recipes, and installation instructions,
-see the [WeSep 2024 README](https://github.com/wenet-e2e/wesep/blob/wesep_2024/README.md).
+see the [WeSep 2024](https://github.com/wenet-e2e/wesep/tree/wesep_2024).
 Cite the following paper when using or comparing against the 2024 version:
 
 ```bibtex

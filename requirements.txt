@@ -1,34 +1,37 @@
-# Install a matching PyTorch 2.x torch/torchaudio/torchvision stack first;
-# see README.md.
-# The PyTorch packages are intentionally kept out of this file because their
-# versions and wheel indexes depend on the CUDA environment.
+# Python 3.10. Install the matching CUDA wheels first; see README.md.
+# Exact base versions also accept matching local builds such as 2.7.1+cu118.
+torch==2.7.1
+torchaudio==2.7.1
+torchvision==0.22.1
 
-auraloss==0.4.0
-av==16.0.1
-fire==0.4.0
-g2p_en==2.1.0
-joblib==1.1.0
-kaldiio==2.18.0
-librosa==0.10.1
-lmdb==1.3.0
-matplotlib==3.5.1
-mir_eval==0.7
-numpy==1.22.4
-# Portable CPU backend for the DNSMOS stage. GPU scoring requires a matching
-# onnxruntime-gpu build instead.
-onnxruntime==1.22.1
-pesq==0.0.4
-pystoi==0.3.3
-PyYAML==6.0
-requests==2.31.0
-scipy==1.7.3
-soundfile==0.12.1
-tableprint==0.9.1
-thop==0.1.1.post2209072238
-tqdm==4.64.0
-setuptools==80.10.2
+# Keep WeSpeaker at the release snapshot validated with this project.
+wespeaker @ git+https://github.com/wenet-e2e/wespeaker.git@9fecd6cb4f47475d01761d87c826298dff4ef18c
 
-# Development and code-quality tools
+# Runtime dependencies. Let pip resolve these together with WeSpeaker.
+auraloss>=0.4.0
+av>=16.0.1
+fire>=0.4.0
+g2p_en>=2.1.0
+joblib>=1.2.0
+kaldiio>=2.18.0
+librosa>=0.10.1
+lmdb>=1.3.0
+matplotlib>=3.5.1
+mir_eval>=0.7
+numpy>=1.24
+# Portable CPU backend for DNSMOS. Select onnxruntime-gpu for GPU scoring.
+onnxruntime>=1.22.1
+pesq>=0.0.4
+pystoi>=0.3.3
+PyYAML>=6.0
+requests>=2.31.0
+scipy>=1.10
+soundfile>=0.12.1
+tableprint>=0.9.1
+thop>=0.1.1.post2209072238
+tqdm>=4.66.3
+
+# Development tools match the repository's lint configuration.
 flake8==3.8.2
 flake8-bugbear==23.3.12
 flake8-comprehensions==3.16.0
@@ -36,6 +39,4 @@ flake8-executable==2.1.3
 flake8-pyi==20.5.0
 pre-commit==3.5.0
 
-# Install feature-specific external dependencies separately:
-# - WeSpeaker for speaker-encoder frontends
-# - gpuRIR for spatial dataset simulation
+# Install gpuRIR separately when using spatial dataset simulation.

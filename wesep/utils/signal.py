@@ -48,7 +48,7 @@ class ConvSTFT(nn.Module):
         super(ConvSTFT, self).__init__()
 
         if fft_len is None:
-            self.fft_len = np.int(2**np.ceil(np.log2(win_len)))
+            self.fft_len = int(2**np.ceil(np.log2(win_len)))
         else:
             self.fft_len = fft_len
 
@@ -89,7 +89,7 @@ class ConviSTFT(nn.Module):
     ):
         super(ConviSTFT, self).__init__()
         if fft_len is None:
-            self.fft_len = np.int(2**np.ceil(np.log2(win_len)))
+            self.fft_len = int(2**np.ceil(np.log2(win_len)))
         else:
             self.fft_len = fft_len
         kernel, window = init_kernels(win_len,

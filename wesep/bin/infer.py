@@ -1,7 +1,10 @@
 from __future__ import print_function
 
+import json
 import os
 import time
+from contextlib import ExitStack
+from pathlib import Path
 
 import fire
 import soundfile
@@ -19,7 +22,6 @@ from wesep.utils.checkpoint import load_pretrained_model
 from wesep.utils.score import cal_SISNRi
 from wesep.utils.file_utils import load_yaml
 from wesep.utils.utils import (
-    generate_enahnced_scp,
     get_logger,
     parse_config_or_kwargs,
     set_seed,
@@ -99,11 +101,33 @@ def infer(config="confs/conf.yaml", **kwargs):
         batch_size=1,
         collate_fn=lambda batch: tse_collate_fn(batch, test_collect_keys))
 
-    with open(configs["test_data"], "r", encoding="utf-8") as f:
-        test_iter = sum(1 for _ in f)
-    logger.info("test mixtures: {}".format(test_iter))
+    # Resolve targets by sample key and speaker ID, not output filenames.
+    sample_index = None
+    if sign_save_wav and configs.get("test_samples"):
+        sample_index = {}
+        with open(configs["test_samples"], encoding="utf-8") as stream:
+            for line in stream:
+                if not line.strip():
+                    continue
+                sample = json.loads(line)
+                if sample["key"] in sample_index:
+                    raise ValueError(f"Duplicate sample key: {sample['key']}")
+                if len(set(sample["spk"])) != len(sample["spk"]):
+                    raise ValueError(f"Duplicate speaker in {sample['key']}")
+                sample_index[sample["key"]] = sample
+    elif sign_save_wav:
+        logger.info("No test_samples provided; saving audio without pairs.")
 
-    with torch.no_grad():
+    with ExitStack() as stack, torch.no_grad():
+        if sample_index is not None:
+            pairs_path = Path(
+                configs.get("pairs_file",
+                            os.path.join(save_audio_dir, "audio_pairs.jsonl")))
+            pairs_path.parent.mkdir(parents=True, exist_ok=True)
+            # Flush each pair as soon as its output audio has been saved.
+            pairs_stream = stack.enter_context(
+                pairs_path.open("w", encoding="utf-8", buffering=1))
+            logger.info("Audio pairs: %s", pairs_path.resolve())
         for i, batch in enumerate(test_dataloader):
             spk = batch["spk"]
             key = batch["key"]
@@ -133,6 +157,12 @@ def infer(config="confs/conf.yaml", **kwargs):
             # Save and score every speaker-expanded TSE output in the batch.
             for idx in range(len(ests)):
                 if sign_save_wav:
+                    if sample_index is not None:
+                        sample = sample_index[key[idx]]
+                        if spk[idx] not in sample["spk"]:
+                            raise ValueError(
+                                f"Unknown target speaker {spk[idx]} in {key[idx]}")
+                        target_path = Path(sample["src"][spk[idx]][0]).resolve()
                     file_path = os.path.join(
                         save_audio_dir,
                         f"Utt{total_cnt + 1}-{key[idx]}-T{spk[idx]}.wav",
@@ -147,6 +177,14 @@ def infer(config="confs/conf.yaml", **kwargs):
                         output_to_save.numpy(),
                         sample_rate,
                     )
+                    if sample_index is not None:
+                        pair = {
+                            "id": f"{key[idx]}_{spk[idx]}",
+                            "target": str(target_path),
+                            "estimate": os.path.abspath(file_path),
+                        }
+                        pairs_stream.write(
+                            json.dumps(pair, ensure_ascii=False) + "\n")
 
                 sisnr, delta = cal_SISNRi(ests[idx], ref[idx], mix[idx])
                 logger.info(
@@ -159,9 +197,7 @@ def infer(config="confs/conf.yaml", **kwargs):
                     accept_cnt += 1
 
         end = time.time()
-    # generate the scp file of the enhanced speech for scoring
-    if sign_save_wav:
-        generate_enahnced_scp(os.path.abspath(save_audio_dir), extension="wav")
+    logger.info("Extracted targets: %s", total_cnt)
 
     logger.info("Time Elapsed: {:.1f}s".format(end - start))
     logger.info("Average SI-SNR: {:.2f}".format(total_SISNR / total_cnt))

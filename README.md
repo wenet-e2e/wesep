@@ -47,20 +47,22 @@ conda create -n wesep python=3.10 pip
 conda activate wesep
 ```
 
-Install PyTorch 2.7.1, TorchAudio 2.7.1, and TorchVision 0.22.1 using the CUDA
-wheel index for your machine. For CUDA 11.8 builds, including RTX 2080 Ti and
-NVIDIA V100 systems:
-
-```sh
-python -m pip install torch==2.7.1 torchaudio==2.7.1 torchvision==0.22.1 \
-  --index-url https://download.pytorch.org/whl/cu118
-```
-
-For CUDA 12.8 builds:
+Install PyTorch 2.7.1, TorchAudio 2.7.1, and TorchVision 0.22.1. The default
+installation uses CUDA 12.8 builds:
 
 ```sh
 python -m pip install torch==2.7.1 torchaudio==2.7.1 torchvision==0.22.1 \
   --index-url https://download.pytorch.org/whl/cu128
+```
+
+RTX 5090 multi-GPU users: for DDP initialization errors with NCCL 2.26.2,
+see [PyTorch #152780](https://github.com/pytorch/pytorch/issues/152780).
+
+Alternatively, for CUDA 11.8 builds, including RTX 2080 Ti and NVIDIA V100 systems:
+
+```sh
+python -m pip install torch==2.7.1 torchaudio==2.7.1 torchvision==0.22.1 \
+  --index-url https://download.pytorch.org/whl/cu118
 ```
 
 Install WeSep's dependencies in one step. This includes WeSpeaker at the fixed
@@ -71,8 +73,7 @@ python -m pip install -r requirements.txt
 ```
 
 The PyTorch versions are also pinned in `requirements.txt`, so this step keeps
-the matching CUDA builds installed above. The remaining runtime dependencies
-are resolved together with WeSpeaker.
+the matching CUDA builds installed above.
 
 Spatial dataset simulation additionally uses `gpuRIR`. DNSMOS scoring uses the
 CPU `onnxruntime` package by default. For GPU scoring, install an
@@ -126,7 +127,7 @@ the expected dataset layout and stage behavior.
 
 - [x] Time-domain and frequency-domain TSE model interfaces
 - [x] Speaker, spatial, visual, and textual cue frontends
-- [ ] Complete recipe-based inference and scoring validation
+- [x] Complete recipe-based inference and scoring validation
 - [ ] Release the validated local-model CLI (coming soon)
 - [ ] Release official pretrained models and automatic download (coming soon)
 

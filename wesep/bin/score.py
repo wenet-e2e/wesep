@@ -1,51 +1,64 @@
-# ported from
-# https://github.com/espnet/espnet/blob/master/espnet2/bin/enh_scoring.py
+# Metric implementations adapted from ESPnet enhancement scoring.
 import argparse
+import json
 import logging
+import math
 import sys
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, Union
 
-import numpy as np
+import soundfile
 from mir_eval.separation import bss_eval_sources
 from pystoi import stoi
 
-from wesep.utils.datadir_writer import DatadirWriter
-from wesep.utils.file_utils import SoundScpReader
 from wesep.utils.score import cal_SISNR
 from wesep.utils.utils import ArgumentParser, get_commandline_args, str2bool
 
 
-def get_readers(scps: List[str], dtype: str):
-    readers = [SoundScpReader(f, dtype=dtype) for f in scps]
-    audio_format = "sound"
-    return readers, audio_format
+def read_audio(path, sample_rate, channel, dtype):
+    audio, rate = soundfile.read(path, dtype=dtype, always_2d=True)
+    if not 0 <= channel < audio.shape[1]:
+        raise ValueError(f"Channel {channel} is unavailable in {path}")
+    audio = audio[:, channel]
+    if rate != sample_rate:
+        import torch
+        from torchaudio.functional import resample
+
+        audio = resample(torch.from_numpy(audio), rate, sample_rate).numpy()
+    return audio
 
 
-def read_audio(reader, key, audio_format="sound"):
-    if audio_format == "sound":
-        return reader[key][1]
-    else:
-        raise ValueError(f"Unknown audio format: {audio_format}")
+def metric_value(name, calculate, errors):
+    try:
+        value = float(calculate())
+        if not math.isfinite(value):
+            raise ValueError("non-finite result")
+        return value
+    except Exception as error:
+        errors[name] = str(error)
+        logging.warning("%s: %s", name, error)
+        return None
 
 
 def scoring(
     output_dir: str,
     dtype: str,
     log_level: Union[int, str],
-    key_file: str,
-    ref_scp: List[str],
-    inf_scp: List[str],
-    ref_channel: int,
+    pairs: str,
+    fs: str,
+    target_channel: int,
+    estimate_channel: int,
     use_dnsmos: bool,
     dnsmos_args: Dict,
     use_pesq: bool,
 ):
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        format="%(asctime)s %(levelname)s: %(message)s",
     )
-
+    sample_rate = 16000 if fs == "16k" else 8000
+    if use_dnsmos and sample_rate != 16000:
+        raise ValueError("DNSMOS scoring requires --fs 16k")
     if use_dnsmos:
         if dnsmos_args["mode"] == "local":
             from wesep.utils.dnsmos import DNSMOS_local
@@ -94,130 +107,125 @@ def scoring(
     else:
         pesq = None
 
-    assert len(ref_scp) == len(inf_scp), "len(ref_scp) != len(inf_scp)"
-    num_spk = len(ref_scp)
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    count = 0
+    with open(pairs, encoding="utf-8") as source, \
+            (output / "scores.jsonl").open("w", encoding="utf-8") as writer:
+        for line_number, line in enumerate(source, 1):
+            if not line.strip():
+                continue
+            location = f"{pairs}:{line_number}"
+            try:
+                pair = json.loads(line)
+                target_path, estimate_path = pair["target"], pair["estimate"]
+                target = read_audio(target_path, sample_rate, target_channel, dtype)
+                estimate = read_audio(estimate_path, sample_rate, estimate_channel, dtype)
+                if target.size == 0 or target.shape != estimate.shape:
+                    raise ValueError(
+                        f"Audio lengths differ or are empty: {target.shape}, {estimate.shape}")
+            except Exception as error:
+                raise ValueError(f"{location}: {error}") from error
+            logging.info("Scoring %s (%s)", location, pair.get("id", "no id"))
+            errors = {}
+            metrics = {
+                "STOI": metric_value(
+                    "STOI", lambda t=target, e=estimate: stoi(t, e, sample_rate) * 100, errors),
+                "ESTOI": metric_value(
+                    "ESTOI", lambda t=target, e=estimate: stoi(t, e, sample_rate, extended=True) * 100,
+                    errors),
+                "SI_SNR": metric_value(
+                    "SI_SNR", lambda e=estimate, t=target: cal_SISNR(e, t), errors),
+            }
+            try:
+                sdr, sir, sar, _ = bss_eval_sources(
+                    target[None], estimate[None], compute_permutation=False)
+                for name, values in [("SDR", sdr), ("SIR", sir), ("SAR", sar)]:
+                    metrics[name] = metric_value(name, lambda v=values[0]: v, errors)
+            except Exception as error:
+                for name in ["SDR", "SIR", "SAR"]:
+                    metrics[name] = None
+                    errors[name] = str(error)
+                logging.warning("BSS metrics: %s", error)
+            if pesq:
+                mode = "wb" if sample_rate == 16000 else "nb"
+                name = f"PESQ_{mode.upper()}"
 
-    keys = [
-        line.rstrip().split(maxsplit=1)[0]
-        for line in open(key_file, encoding="utf-8")
-    ]
+                def calculate_pesq(t=target, e=estimate, m=mode):
+                    value = pesq(sample_rate, t, e, mode=m,
+                                 on_error=PesqError.RETURN_VALUES)
+                    if value < 0:
+                        raise ValueError(f"PESQ error code {value}")
+                    return value
 
-    ref_readers, ref_audio_format = get_readers(ref_scp, dtype)
-    inf_readers, inf_audio_format = get_readers(inf_scp, dtype)
+                metrics[name] = metric_value(name, calculate_pesq, errors)
+            if dnsmos:
+                try:
+                    result = dnsmos(estimate, sample_rate)
+                    for name in ["BAK", "SIG", "OVRL", "P808_MOS"]:
+                        metrics[name] = metric_value(name, lambda n=name, r=result: r[n], errors)
+                except Exception as error:
+                    for name in ["BAK", "SIG", "OVRL", "P808_MOS"]:
+                        metrics[name] = None
+                        errors[name] = str(error)
+                    logging.warning("DNSMOS: %s", error)
+            record = {"target": target_path, "estimate": estimate_path, "metrics": metrics}
+            if "id" in pair:
+                record["id"] = pair["id"]
+            if errors:
+                record["errors"] = errors
+            writer.write(json.dumps(record, ensure_ascii=False, allow_nan=False) + "\n")
+            count += 1
+    if not count:
+        raise ValueError(f"No audio pairs found in {pairs}")
+    logging.info("Scored %s audio pairs", count)
 
-    # get sample rate
-    retval = ref_readers[0][keys[0]]
-    if ref_audio_format == "kaldi_ark":
-        sample_rate = ref_readers[0].rate
-    elif ref_audio_format == "sound":
-        sample_rate = retval[0]
-    else:
-        raise NotImplementedError(ref_audio_format)
-    assert sample_rate is not None, (sample_rate, ref_audio_format)
 
-    # check keys
-    for inf_reader, ref_reader in zip(inf_readers, ref_readers):
-        assert inf_reader.keys() == ref_reader.keys()
-
-    with DatadirWriter(output_dir) as writer:
-        for n, key in enumerate(keys):
-            logging.info(f"[{n}] Scoring {key}")
-            ref_audios = [
-                read_audio(ref_reader, key, audio_format=ref_audio_format)
-                for ref_reader in ref_readers
-            ]
-            inf_audios = [
-                read_audio(inf_reader, key, audio_format=inf_audio_format)
-                for inf_reader in inf_readers
-            ]
-            ref = np.array(ref_audios)
-            inf = np.array(inf_audios)
-            if ref.ndim > inf.ndim:
-                # multi-channel reference and single-channel output
-                ref = ref[..., ref_channel]
-            elif ref.ndim < inf.ndim:
-                # single-channel reference and multi-channel output
-                inf = inf[..., ref_channel]
-            elif ref.ndim == inf.ndim == 3:
-                # multi-channel reference and output
-                ref = ref[..., ref_channel]
-                inf = inf[..., ref_channel]
-
-            assert ref.shape == inf.shape, (ref.shape, inf.shape)
-
-            sdr, sir, sar, perm = bss_eval_sources(ref,
-                                                   inf,
-                                                   compute_permutation=True)
-
-            for i in range(num_spk):
-                stoi_score = stoi(ref[i],
-                                  inf[int(perm[i])],
-                                  fs_sig=sample_rate)
-                estoi_score = stoi(
-                    ref[i],
-                    inf[int(perm[i])],
-                    fs_sig=sample_rate,
-                    extended=True,
-                )
-                si_snr_score = cal_SISNR(
-                    ref[i],
-                    inf[int(perm[i])],
-                )
-
-                if dnsmos:
-                    dnsmos_score = dnsmos(inf[int(perm[i])], sample_rate)
-                    writer[f"OVRL_spk{i + 1}"][key] = str(dnsmos_score["OVRL"])
-                    writer[f"SIG_spk{i + 1}"][key] = str(dnsmos_score["SIG"])
-                    writer[f"BAK_spk{i + 1}"][key] = str(dnsmos_score["BAK"])
-                    writer[f"P808_MOS_spk{i + 1}"][key] = str(
-                        dnsmos_score["P808_MOS"])
-                if pesq:
-                    if sample_rate == 8000:
-                        mode = "nb"
-                    elif sample_rate == 16000:
-                        mode = "wb"
-                    else:
-                        raise ValueError(
-                            "sample rate must be 8000 or 16000 for PESQ evaluation, "
-                            f"but got {sample_rate}")
-                    pesq_score = pesq(
-                        sample_rate,
-                        ref[i],
-                        inf[int(perm[i])],
-                        mode=mode,
-                        on_error=PesqError.RETURN_VALUES,
-                    )
-                    if pesq_score == PesqError.NO_UTTERANCES_DETECTED:
-                        logging.warning(
-                            f"[PESQ] Error: No utterances detected for {key}. "
-                            "Skipping this utterance.")
-                    else:
-                        writer[f"PESQ_{mode.upper()}_spk{i + 1}"][key] = str(
-                            pesq_score)
-                writer[f"STOI_spk{i + 1}"][key] = str(stoi_score *
-                                                      100)  # in percentage
-                writer[f"ESTOI_spk{i + 1}"][key] = str(estoi_score * 100)
-                writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
-                writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
-                writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
-                writer[f"SIR_spk{i + 1}"][key] = str(sir[i])
-                # save permutation assigned script file
-                if i < len(ref_scp):
-                    if inf_audio_format == "sound":
-                        writer[f"wav_spk{i + 1}"][key] = inf_readers[
-                            perm[i]].data[key]
-                    elif inf_audio_format == "kaldi_ark":
-                        # NOTE: SegmentsExtractor is not supported
-                        writer[f"wav_spk{i + 1}"][key] = inf_readers[
-                            perm[i]].loader._dict[key]
-                    else:
-                        raise ValueError(
-                            f"Unknown audio format: {inf_audio_format}")
+def merge_scores(inputs, output_dir):
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    scores_path = output / "scores.jsonl"
+    if any(Path(path).resolve() == scores_path.resolve() for path in inputs):
+        raise ValueError("Merge inputs must differ from the merged scores.jsonl")
+    totals, counts = {}, {}
+    pair_count = 0
+    with scores_path.open("w", encoding="utf-8") as writer:
+        for path in inputs:
+            with open(path, encoding="utf-8") as source:
+                for line in source:
+                    record = json.loads(line)
+                    writer.write(json.dumps(record, ensure_ascii=False, allow_nan=False) + "\n")
+                    pair_count += 1
+                    for name, value in record["metrics"].items():
+                        totals.setdefault(name, 0.0)
+                        counts.setdefault(name, 0)
+                        if value is not None and math.isfinite(value):
+                            totals[name] += value
+                            counts[name] += 1
+    if not pair_count:
+        raise ValueError("No scores to merge")
+    summary = {name: {"mean": totals[name] / counts[name] if counts[name] else None,
+                      "count": counts[name]} for name in totals}
+    with (output / "summary.json").open("w", encoding="utf-8") as stream:
+        json.dump({"num_pairs": pair_count, "metrics": summary}, stream, indent=2,
+                  allow_nan=False)
+        stream.write("\n")
+    # Keep mean files available to the existing experiment-results viewer.
+    for stale in output.glob("result_*.txt"):
+        stale.unlink()
+    with (output / "RESULTS.md").open("w", encoding="utf-8") as stream:
+        stream.write(f"# Scoring results\n\nAudio pairs: {pair_count}\n\n")
+        stream.write("| Metric | Mean | Valid pairs |\n| --- | --- | --- |\n")
+        for name, values in summary.items():
+            mean = values["mean"]
+            text = f"{mean:.2f}" if mean is not None else "N/A"
+            (output / f"result_{name.lower()}.txt").write_text(text + "\n")
+            stream.write(f"| {name} | {text} | {values['count']} |\n")
 
 
 def get_parser():
     parser = ArgumentParser(
-        description="Frontend inference",
+        description="Score target/estimate audio pairs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -237,25 +245,15 @@ def get_parser():
     parser.add_argument(
         "--dtype",
         default="float32",
-        choices=["float16", "float32", "float64"],
+        choices=["float32", "float64"],
         help="Data type",
     )
 
-    group = parser.add_argument_group("Input data related")
-    group.add_argument(
-        "--ref_scp",
-        type=str,
-        required=True,
-        action="append",
-    )
-    group.add_argument(
-        "--inf_scp",
-        type=str,
-        required=True,
-        action="append",
-    )
-    group.add_argument("--key_file", type=str)
-    group.add_argument("--ref_channel", type=int, default=0)
+    parser.add_argument("--pairs", help="JSONL with target, estimate and optional id")
+    parser.add_argument("--merge_inputs", nargs="+", help="Worker scores.jsonl files")
+    parser.add_argument("--fs", default="16k", choices=("8k", "16k"))
+    parser.add_argument("--target_channel", type=int, default=0)
+    parser.add_argument("--estimate_channel", type=int, default=0)
 
     group = parser.add_argument_group("DNSMOS related")
     group.add_argument("--use_dnsmos", type=str2bool, default=False)
@@ -297,7 +295,7 @@ def get_parser():
     )
     group.add_argument("--dnsmos_gpu_device",
                        type=int,
-                       default=None,
+                       default=1,
                        help="gpu device to use for DNSMOS evaluation. "
                        "Used when dnsmsos_mode='local'")
 
@@ -316,10 +314,14 @@ def get_parser():
 def main(cmd=None):
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
-    args = parser.parse_args(cmd)
-    kwargs = vars(args)
+    kwargs = vars(parser.parse_args(cmd))
     kwargs.pop("config", None)
-
+    merge_inputs = kwargs.pop("merge_inputs")
+    if merge_inputs:
+        merge_scores(merge_inputs, kwargs["output_dir"])
+        return
+    if not kwargs["pairs"]:
+        parser.error("--pairs is required for scoring")
     dnsmos_args = {
         "mode": kwargs.pop("dnsmos_mode"),
         "auth_key": kwargs.pop("dnsmos_auth_key"),

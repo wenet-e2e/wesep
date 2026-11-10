@@ -112,30 +112,6 @@ def set_seed(seed=42):
     torch.backends.cudnn.benchmark = True
 
 
-def generate_enahnced_scp(directory: str, extension: str = "wav"):
-    source_dir = Path(directory)
-    spk_scp = source_dir.joinpath("spk1.scp")
-    audio_list = []
-
-    for file_path in source_dir.rglob(f"*.{extension}"):
-        audio_list.append(file_path)
-
-    with open(spk_scp, "w") as f:
-        for audio in audio_list:
-            path = str(audio.resolve())
-            ori_filename = audio.stem
-            spk1_id = ori_filename.split("-")[1]
-            # spk2_id = ori_filename.split("_")[1].split("-")[0]
-            curr_spk = ori_filename.split("T")[1]
-            prefix = "s1" if curr_spk == spk1_id else "s2"
-            f_dash_index = ori_filename.find("-")
-            l_dash_index = ori_filename.rfind("-")
-            filename = ori_filename[f_dash_index + 1:l_dash_index]
-            final_filename = prefix + "/" + filename + ".wav"
-            line = final_filename + " " + path
-            f.write(line + "\n")
-
-
 def get_commandline_args():
     # ported from
     # https://github.com/espnet/espnet/blob/master/espnet/utils/cli_utils.py

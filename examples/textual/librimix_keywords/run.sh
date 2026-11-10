@@ -120,73 +120,27 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
   echo "Stage 5: Infer"
-
-  if [ "${num_gpus}" -eq 1 ]; then
-    infer_gpu="${gpus#[}"
-    infer_gpu="${infer_gpu%]}"
-    python "${WESEP_ROOT}/wesep/bin/infer.py" \
-      --config "${config}" \
-      --fs "${fs}" \
-      --gpus "${infer_gpu}" \
-      --exp_dir "${exp_dir}" \
-      --data_type "${data_type}" \
-      --test_data "${data}/test/${data_type}.list" \
-      --test_cues "${data}/test/cues.yaml" \
-      --test_samples "${data}/test/samples.jsonl" \
-      --save_wav "${save_results}" \
-      ${checkpoint:+--checkpoint "${checkpoint}"}
-  else
-    # Keep the same GPU-list convention as training (for example "[0,1,2,3]").
-    gpu_list="${gpus#[}"
-    gpu_list="${gpu_list%]}"
-    IFS=',' read -r -a infer_gpus <<< "${gpu_list}"
-
-    test_list=${data}/test/${data_type}.list
-    split_dir=${data}/test/split${num_gpus}
-    mkdir -p "${split_dir}"
-    split_lists=()
-    for i in "${!infer_gpus[@]}"; do
-      split_lists+=("${split_dir}/${i}.${data_type}.list")
-    done
-    perl "${WESEP_ROOT}/tools/split_scp.pl" "${test_list}" "${split_lists[@]}"
-
-    # Workers share the audio directory, but use independent logs and defer scp
-    # creation until every worker has completed, preventing concurrent rewrites.
-    pids=()
-    for i in "${!infer_gpus[@]}"; do
-      python "${WESEP_ROOT}/wesep/bin/infer.py" --config "${config}" \
-        --fs "${fs}" --gpus "${infer_gpus[$i]}" --exp_dir "${exp_dir}" \
-        --data_type "${data_type}" \
-        --test_data "${split_lists[$i]}" \
-        --test_cues "${data}/test/cues.yaml" \
-        --test_samples "${data}/test/samples.jsonl" \
-        --save_wav "${save_results}" \
-        --write_enhanced_scp false \
-        ${checkpoint:+--checkpoint "$checkpoint"} &
-      pids+=("$!")
-    done
-    trap 'kill "${pids[@]}" 2>/dev/null || true' INT TERM
-    for pid in "${pids[@]}"; do
-      wait "${pid}"
-    done
-    trap - INT TERM
-
-    if [[ "${save_results}" == "true" ]]; then
-      python -c "from wesep.utils.utils import generate_enahnced_scp; generate_enahnced_scp(r'${exp_dir}/audio', extension='wav')"
-    fi
-  fi
+  infer_gpu="${gpus#[}"
+  infer_gpu="${infer_gpu%]}"
+  infer_gpu="${infer_gpu%%,*}"
+  python "${WESEP_ROOT}/wesep/bin/infer.py" \
+    --config "${config}" \
+    --fs "${fs}" \
+    --gpus "${infer_gpu}" \
+    --exp_dir "${exp_dir}" \
+    --data_type "${data_type}" \
+    --test_data "${data}/test/${data_type}.list" \
+    --test_cues "${data}/test/cues.yaml" \
+    --test_samples "${data}/test/samples.jsonl" \
+    --save_wav "${save_results}" \
+    ${checkpoint:+--checkpoint "${checkpoint}"}
 fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
   echo "Stage 6: Score"
-  python "${WESEP_ROOT}/tools/build_tse_reference_scp.py" \
-    --samples "${data}/test/samples.jsonl" \
-    --output "${data}/test/single.wav.scp" \
-    --inference-scp "${exp_dir}/audio/spk1.scp" \
-    --check-source-files
   "${WESEP_ROOT}/tools/score.sh" \
-    --dset "${data}/test" \
-    --exp_dir "${exp_dir}" \
+    --pairs "${exp_dir}/audio/audio_pairs.jsonl" \
+    --output_dir "${exp_dir}/scoring" \
     --fs "${fs}" \
     --use_pesq "${use_pesq}" \
     --use_dnsmos "${use_dnsmos}" \

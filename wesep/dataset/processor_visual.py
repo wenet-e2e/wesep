@@ -47,44 +47,75 @@ def _align_last_dim_to_audio_duration(x, duration_sec, sample, spk_slot):
     return torch.cat([x, pad], dim=-1)
 
 
+def _chunk_time_window(sample, spk_slot):
+    """Return the [start_sec, end_sec) window needed for the current chunk."""
+    audio_sec = _audio_seconds(sample, spk_slot)
+    ratio = sample.get(f"chunk_ratio_{spk_slot}",
+                       sample.get("chunk_ratio", None))
+    if ratio is None:
+        return 0.0, float(audio_sec)
+    start_sec = float(ratio["start_ratio"]) * audio_sec
+    end_sec = float(ratio["end_ratio"]) * audio_sec
+    if end_sec <= start_sec:
+        end_sec = start_sec + max(float(audio_sec) * 1e-3, 1.0 / 25.0)
+    return start_sec, end_sec
+
+
+def _pad_or_trim_time(video, num_frames):
+    """Pad with the last frame or trim along T so video has num_frames."""
+    num_frames = max(1, int(num_frames))
+    cur = video.shape[0]
+    if cur == num_frames:
+        return video
+    if cur > num_frames:
+        return video[:num_frames]
+    last_frame = video[-1:].repeat(num_frames - cur, 1, 1, 1)
+    return torch.cat([video, last_frame], dim=0)
+
+
 def _read_raw_video_item(item, sample, spk_slot):
-    """Read one video cue as [H, W, C, T] for the selected speaker slot."""
+    """Read one video cue as [H, W, C, T] for the selected speaker slot.
+
+    Decode only the current training chunk. Full-file ``read_video`` on long
+    VoxCeleb2 MP4s OOMs DataLoader workers even when /dev/shm is large.
+    """
     video_path = item["path"]
-    video, _, info = read_video(video_path, pts_unit="sec")
-    fps = info["video_fps"]
+    start_sec, end_sec = _chunk_time_window(sample, spk_slot)
+    # ~2 frames at 25 fps so keyframe seek / rounding still covers the crop.
+    pad_sec = 0.08
+    decode_start = max(0.0, start_sec - pad_sec)
+    decode_end = end_sec + pad_sec
+    video, _, info = read_video(
+        video_path,
+        start_pts=decode_start,
+        end_pts=decode_end,
+        pts_unit="sec",
+    )
+    fps = info.get("video_fps")
 
     # video: [T, H, W, C] uint8
     if video.numel() == 0:
+        # Chunk may start after a short video; grab the tail and pad.
+        decode_start = max(0.0, decode_end - 1.0)
+        video, _, info = read_video(
+            video_path,
+            start_pts=decode_start,
+            end_pts=decode_end,
+            pts_unit="sec",
+        )
+        fps = info.get("video_fps") or fps
+    if not fps:
+        raise RuntimeError(f"Missing video_fps: {video_path}")
+    if video.numel() == 0:
         raise RuntimeError(f"Empty video: {video_path}")
 
-    # First match full-utterance duration, then apply chunk-level crop.
-    audio_sec = _audio_seconds(sample, spk_slot)
-    video_sec = video.shape[0] / fps
-    if video_sec < audio_sec:
-        need_sec = audio_sec - video_sec
-        need_frames = int(round(need_sec * fps))
-        last_frame = video[-1:].repeat(need_frames, 1, 1, 1)
-        video = torch.cat([video, last_frame], dim=0)
-    elif video_sec > audio_sec:
-        max_frames = int(round(audio_sec * fps))
-        video = video[:max_frames]
-
-    ratio = sample.get(f"chunk_ratio_{spk_slot}",
-                       sample.get("chunk_ratio", None))
-    if ratio is not None:
-        start_ratio = ratio["start_ratio"]
-        end_ratio = ratio["end_ratio"]
-
-        num_frames = video.shape[0]
-        start_f = int(start_ratio * num_frames)
-        end_f = int(end_ratio * num_frames)
-
-        start_f = max(0, min(start_f, num_frames))
-        crop_end = max(start_f + 1, min(end_f, num_frames))
-        video = video[start_f:crop_end]
-        if end_f > num_frames:
-            last_frame = video[-1:].repeat(end_f - num_frames, 1, 1, 1)
-            video = torch.cat([video, last_frame], dim=0)
+    need_frames = max(1, int(round((end_sec - start_sec) * fps)))
+    rel_start = int(round((start_sec - decode_start) * fps))
+    num_frames = video.shape[0]
+    rel_start = max(0, min(rel_start, num_frames - 1))
+    crop_end = max(rel_start + 1, min(rel_start + need_frames, num_frames))
+    video = video[rel_start:crop_end]
+    video = _pad_or_trim_time(video, need_frames)
 
     # Keep decoded frames compact until the visual frontend runs on device.
     return video.permute(1, 2, 3, 0)  # [H, W, C, T] uint8

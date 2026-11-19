@@ -60,6 +60,7 @@ def scoring(
     if use_dnsmos and sample_rate != 16000:
         raise ValueError("DNSMOS scoring requires --fs 16k")
     if use_dnsmos:
+        logging.info("Initializing DNSMOS (%s)...", dnsmos_args["mode"])
         if dnsmos_args["mode"] == "local":
             from wesep.utils.dnsmos import DNSMOS_local
 
@@ -80,7 +81,7 @@ def scoring(
                 convert_to_torch=dnsmos_args["convert_to_torch"],
                 gpu_device=dnsmos_args["gpu_device"] - 1,
             )
-            logging.warning("Using local DNSMOS models for evaluation")
+            logging.info("DNSMOS initialized; using local models")
 
         elif dnsmos_args["mode"] == "web":
             from wesep.utils.dnsmos import DNSMOS_web
@@ -92,7 +93,7 @@ def scoring(
                     "DNS-Challenge/blob/master/DNSMOS/README.md#to-use-the-web-api"
                 )
             dnsmos = DNSMOS_web(dnsmos_args["auth_key"])
-            logging.warning("Using the DNSMOS Web-API for evaluation")
+            logging.info("DNSMOS initialized; using the Web API")
     else:
         dnsmos = None
 
@@ -110,8 +111,10 @@ def scoring(
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     count = 0
+    logging.info("Starting pair scoring: %s", pairs)
     with open(pairs, encoding="utf-8") as source, \
-            (output / "scores.jsonl").open("w", encoding="utf-8") as writer:
+            (output / "scores.jsonl").open(
+                "w", encoding="utf-8", buffering=1) as writer:
         for line_number, line in enumerate(source, 1):
             if not line.strip():
                 continue

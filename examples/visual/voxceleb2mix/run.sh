@@ -18,6 +18,7 @@ voxceleb2mix_root=          # Generated min-length VoxCeleb2Mix root
 mixture_manifest=
 visual_frontend=raw_video   # raw_video keeps MP4 cues; muse precomputes features
 visual_frontend_checkpoint= # Checkpoint required by the selected frontend
+# muse visual_frontend: https://drive.google.com/uc?export=download&id=17BrWunfGl0T9QBw837wyQ88TFQ-dsX4K
 visual_device=cuda
 
 # Stage 1: WeSep lists from the generated dataset root

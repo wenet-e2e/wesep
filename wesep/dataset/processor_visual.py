@@ -5,9 +5,9 @@
 import logging
 import re
 
+import av
 import numpy as np
 import torch
-from torchvision.io import read_video
 
 from wesep.utils.file_utils import load_json
 
@@ -47,47 +47,62 @@ def _align_last_dim_to_audio_duration(x, duration_sec, sample, spk_slot):
     return torch.cat([x, pad], dim=-1)
 
 
-def _read_raw_video_item(item, sample, spk_slot):
-    """Read one video cue as [H, W, C, T] for the selected speaker slot."""
-    video_path = item["path"]
-    video, _, info = read_video(video_path, pts_unit="sec")
-    fps = info["video_fps"]
-
-    # video: [T, H, W, C] uint8
-    if video.numel() == 0:
-        raise RuntimeError(f"Empty video: {video_path}")
-
-    # First match full-utterance duration, then apply chunk-level crop.
-    audio_sec = _audio_seconds(sample, spk_slot)
-    video_sec = video.shape[0] / fps
-    if video_sec < audio_sec:
-        need_sec = audio_sec - video_sec
-        need_frames = int(round(need_sec * fps))
-        last_frame = video[-1:].repeat(need_frames, 1, 1, 1)
-        video = torch.cat([video, last_frame], dim=0)
-    elif video_sec > audio_sec:
-        max_frames = int(round(audio_sec * fps))
-        video = video[:max_frames]
-
+def _chunk_time_window(sample, spk_slot):
+    """Recover the audio chunk's absolute time window from sample positions."""
     ratio = sample.get(f"chunk_ratio_{spk_slot}",
                        sample.get("chunk_ratio", None))
-    if ratio is not None:
-        start_ratio = ratio["start_ratio"]
-        end_ratio = ratio["end_ratio"]
+    sample_rate = sample["sample_rate"]
+    if ratio is None:
+        return 0.0, sample["wav_mix"].shape[-1] / sample_rate
 
-        num_frames = video.shape[0]
-        start_f = int(start_ratio * num_frames)
-        end_f = int(end_ratio * num_frames)
+    start = round(ratio["start_ratio"] * ratio["orig_len"])
+    end = round(ratio["end_ratio"] * ratio["orig_len"])
+    if start < 0 or end <= start:
+        raise ValueError(f"Invalid video time window: {start}:{end}")
+    return start / sample_rate, end / sample_rate
 
-        start_f = max(0, min(start_f, num_frames))
-        crop_end = max(start_f + 1, min(end_f, num_frames))
-        video = video[start_f:crop_end]
-        if end_f > num_frames:
-            last_frame = video[-1:].repeat(end_f - num_frames, 1, 1, 1)
-            video = torch.cat([video, last_frame], dim=0)
 
-    # Keep decoded frames compact until the visual frontend runs on device.
-    return video.permute(1, 2, 3, 0)  # [H, W, C, T] uint8
+def _read_raw_video_item(item, sample, spk_slot):
+    """Decode the video window as [H, W, C, T], padding with its last frame."""
+    start_sec, end_sec = _chunk_time_window(sample, spk_slot)
+    frames = []
+    with av.open(item["path"]) as container:
+        stream = container.streams.video[0]
+        if not stream.average_rate or stream.average_rate <= 0:
+            raise ValueError(f"Invalid video FPS: {item['path']}")
+        fps = float(stream.average_rate)
+        time_base = stream.time_base
+        origin_pts = stream.start_time or 0
+        first = int(start_sec * fps + 0.5)
+        count = max(1, int((end_sec - start_sec) * fps + 0.5))
+        stop = first + count
+
+        # Seek to an earlier keyframe, then locate frames by their actual PTS.
+        seek_pts = origin_pts + int(first / stream.average_rate / time_base)
+        container.seek(seek_pts, stream=stream, backward=True)
+        last_frame = None
+        last_index = -1
+        for frame in container.decode(video=0):
+            frame_sec = (frame.pts - origin_pts) * time_base
+            index = int(frame_sec * stream.average_rate + 0.5)
+            if index >= stop:
+                break
+            last_frame = frame
+            last_index = index
+            if index >= first:
+                frames.append(frame.to_ndarray(format="rgb24"))
+
+        # Preserve the final frame when a padded audio chunk starts past EOF.
+        if not frames:
+            if last_frame is None or last_index >= first:
+                raise RuntimeError(
+                    f"No video frames for requested window: {item['path']}")
+            frames.append(last_frame.to_ndarray(format="rgb24"))
+
+    frames = frames[:count]
+    frames.extend([frames[-1]] * (count - len(frames)))
+    video = torch.from_numpy(np.stack(frames))
+    return video.permute(1, 2, 3, 0)
 
 
 def _read_muse_frontend_item(item, sample, spk_slot):

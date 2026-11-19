@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 
 import librosa
@@ -101,22 +102,41 @@ class DNSMOS_local:
                 raise RuntimeError(
                     "Please install onnxruntime manually and retry!") from None
 
-            prvd = ("CUDAExecutionProvider"
-                    if use_gpu else "CPUExecutionProvider")
             if primary_model_path is not None:
-                self.onnx_sess = ort.InferenceSession(primary_model_path,
-                                                      providers=[prvd])
-                self.p808_onnx_sess = ort.InferenceSession(p808_model_path,
-                                                           providers=[prvd])
-                if self.gpu_device is not None:
-                    self.onnx_sess.set_providers([prvd],
-                                                 [{
-                                                     "device_id": gpu_device
-                                                 }])
-                    self.p808_onnx_sess.set_providers(
-                        [prvd], [{
-                            "device_id": gpu_device
-                        }])
+                def create_sessions(providers):
+                    self.onnx_sess = ort.InferenceSession(
+                        primary_model_path, providers=providers)
+                    self.p808_onnx_sess = ort.InferenceSession(
+                        p808_model_path, providers=providers)
+
+                if use_gpu:
+                    try:
+                        available = ort.get_available_providers()
+                        if "CUDAExecutionProvider" not in available:
+                            raise RuntimeError(
+                                "CUDAExecutionProvider is unavailable; "
+                                f"available providers: {available}")
+                        options = ({"device_id": gpu_device}
+                                   if gpu_device is not None else {})
+                        create_sessions([("CUDAExecutionProvider", options)])
+                        for name, session in [("primary", self.onnx_sess),
+                                              ("P808", self.p808_onnx_sess)]:
+                            if "CUDAExecutionProvider" not in session.get_providers():
+                                raise RuntimeError(
+                                    f"{name} CUDA session initialization failed; "
+                                    f"actual providers: {session.get_providers()}")
+                    except Exception as error:
+                        self.use_gpu = False
+                        logging.warning(
+                            "DNSMOS_CPU_FALLBACK: %s; switching DNSMOS "
+                            "(SIG, BAK, OVRL, P808_MOS) to CPU.", error)
+                if not self.use_gpu:
+                    create_sessions(["CPUExecutionProvider"])
+                for name, session in [("primary", self.onnx_sess),
+                                      ("P808", self.p808_onnx_sess)]:
+                    logging.info("DNSMOS %s providers: %s; device: %s", name,
+                                 session.get_providers(),
+                                 gpu_device if self.use_gpu else "CPU")
 
     def audio_melspec(
         self,

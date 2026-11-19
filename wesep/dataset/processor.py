@@ -786,12 +786,18 @@ def shuffle(data, shuffle_size=2500):
         buf.append(sample)
         if len(buf) >= shuffle_size:
             random.shuffle(buf)
-            for x in buf:
+            # Release buffer ownership before downstream mutation.
+            for i in range(len(buf)):
+                x = buf[i]
+                buf[i] = None
                 yield x
             buf = []
     # The sample left over
     random.shuffle(buf)
-    for x in buf:
+    # Release leftover samples using the same ownership rule.
+    for i in range(len(buf)):
+        x = buf[i]
+        buf[i] = None
         yield x
 
 

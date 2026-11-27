@@ -54,7 +54,7 @@ model_args:
           glue: 512
         usef:
           enabled: False
-          spec_dim: 2
+          emb_dim: 64
           approx_qk_dim: 512
           n_head: 4
           t_ksize: 3
@@ -64,7 +64,7 @@ model_args:
         context:
           enabled: True
           speaker_model:
-          embed_dim: 512     # Need check the speaker encoder in wespeaker
+          embed_dim: 512     # Check the speaker encoder in wespeaker
           atten_dim: 128         # dim in cross-attention
           num_heads: 2
           fusion: "multiply"  # additive | concat | multiply | FiLM

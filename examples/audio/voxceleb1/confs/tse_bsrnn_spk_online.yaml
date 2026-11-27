@@ -82,7 +82,7 @@ model_args:
           glue: 512
         usef:
           enabled: True
-          spec_dim: 2
+          emb_dim: 64
           approx_qk_dim: 512
           n_head: 4
           t_ksize: 3

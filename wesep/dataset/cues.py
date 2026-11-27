@@ -22,6 +22,7 @@ CUE_FORMATS = {
     ("visual", "mp4", "raw_video"),
     ("visual", "npy", "muse_frontend"),
     ("spatial", "npy", "fields"),
+    ("textual", "json", "word_text"),
     ("textual", "json", "dae_keyword_phoneme"),
 }
 
@@ -194,25 +195,51 @@ def build_spatial_cue(dataset, cue_name, cue_conf, state, configs):
 
 @register_cue("textual")
 def build_textual_cue(dataset, cue_name, cue_conf, state, configs):
-    """Attach the configured textual cue processor."""
+    """Build numeric textual cues using training-config processing rules."""
     info = _cue_common(cue_name, cue_conf, ("fixed", ))
     cue_format = (info["type"], info["format"])
-
-    # Keep representation-specific options outside the textual cue contract.
-    format_args = {}
-    if cue_format == ("json", "dae_keyword_phoneme"):
-        selection = cue_conf.get("selection")
-        if not isinstance(selection, dict):
-            raise ValueError(
-                "DAE keyword textual cue requires a 'selection' mapping.")
-        format_args["selection"] = selection
-
+    processing = dict(configs.get("cue_processing", {}).get("textual", {}))
+    # The configured input must match the representation in the cue index.
+    formats = {
+        "text": ("json", "word_text"),
+        "dae_phoneme": ("json", "dae_keyword_phoneme")
+    }
+    input_type = processing.get("input")
+    if input_type not in formats:
+        raise ValueError("textual.input must be text or dae_phoneme")
+    if cue_format != formats[input_type]:
+        raise ValueError(
+            f"textual.input={input_type} requires {formats[input_type]}, "
+            f"but cues.yaml declares {cue_format}; select matching cue lists")
+    # Omitted stages retain every available word in the selected cue record.
+    selections = processing.get("selection", {})
+    if not isinstance(selections, dict):
+        raise ValueError(
+            "textual.selection must map train/val/test to policies")
+    unknown = set(selections) - {"train", "val", "test"}
+    if unknown:
+        raise ValueError(
+            f"Unknown textual selection stages: {sorted(unknown)}")
+    selection = selections.get(state, {"type": "all"})
+    if not isinstance(selection, dict):
+        raise ValueError(f"Invalid textual selection for state={state}")
+    seed = selection.get("seed")
+    if seed is not None and type(seed) is not int:
+        raise ValueError("textual selection seed must be an integer")
+    processing["selection"] = selection
+    if not isinstance(processing.get("encoding"), dict):
+        raise ValueError("cue_processing.textual.encoding must be configured")
+    if cue_conf.get("collate", {}).get("fill_value", 0) != 0:
+        raise ValueError("DAE phoneme cues require fill_value=0")
+    if cue_conf.get("collate", {}).get("align", "max") != "max":
+        raise ValueError(
+            "Textual cues must align to the longest phoneme sequence")
     return dataset.apply(
         processor_textual.sample_textual_cue,
         info["resource_path"],
         key_field=info["key_field"],
         cue_format=cue_format,
-        format_args=format_args,
+        processing=processing,
         scope=info["scope"],
         required=info["guaranteed"],
     )

@@ -34,12 +34,11 @@ BASE_COLLECT_KEYS = {
     },
 
     # ===== Model features =====
-    # Waveforms always pad to the longest item in the batch. Chunk training is
-    # usually equal-length already; whole-utterance training relies on this.
+    # Waveforms align to the shortest item by default; configs may override it.
     "wav_mix": {
         "axis": "mix",
         "required": True,
-        "align": "max",
+        "align": "min",
         "value_type": "tensor",
         "pad_mode": "constant",
         "fill_value": 0.0,
@@ -48,7 +47,7 @@ BASE_COLLECT_KEYS = {
         "key_tpl": "wav_spk{}",
         "axis": "spk",
         "required": True,
-        "align": "max",
+        "align": "min",
         "value_type": "tensor",
         "pad_mode": "constant",
         "fill_value": 0.0,
@@ -175,7 +174,8 @@ def build_collect_keys(cues_conf, train_conf, base_table):
 
         # Cue defaults are data-side fallbacks; train config may override them.
         cue_collate = cue_cfg.get("collate", {})
-        for k in ("default_shape", "fill_value", "emit_present"):
+        for k in ("default_shape", "fill_value", "emit_present", "align",
+                  "pad_mode"):
             if k in cue_collate:
                 spec[k] = cue_collate[k]
             if k in want:

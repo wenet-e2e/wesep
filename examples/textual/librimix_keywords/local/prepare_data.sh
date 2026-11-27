@@ -7,122 +7,105 @@ if [ -z "${WESEP_ROOT:-}" ]; then
 fi
 
 mix_data_path=
-resource_dir=exp/kce
+librispeech_root=
 data=data
 noise_type=clean
-dev_keyword_count=4
-test_keyword_count=4
+textual_input=text
+config=confs/tse_bsrnn_dae.yaml
 
 . "${WESEP_ROOT}/tools/parse_options.sh" || exit 1
 
-if [ -z "${mix_data_path}" ]; then
-  echo "--mix-data-path is required." >&2
+if [ -z "${mix_data_path}" ] || [ -z "${librispeech_root}" ]; then
+  echo "--mix-data-path and --librispeech-root are required." >&2
   exit 1
 fi
-if [ ! -d "${mix_data_path}" ]; then
-  echo "Libri2Mix data root does not exist: ${mix_data_path}" >&2
+if [ ! -d "${mix_data_path}" ] || [ ! -d "${librispeech_root}" ]; then
+  echo "Libri2Mix or LibriSpeech data root does not exist." >&2
   exit 1
 fi
-if [[ ! "${test_keyword_count}" =~ ^[1-4]$ ]]; then
-  echo "--test-keyword-count must be one of 1, 2, 3, or 4." >&2
-  exit 1
-fi
-if [[ ! "${dev_keyword_count}" =~ ^[1-9][0-9]*$ ]]; then
-  echo "--dev-keyword-count must be a positive integer." >&2
-  exit 1
-fi
+case "${textual_input}" in
+  text) cue_format=word_text; cue_index=textual.json ;;
+  dae_phoneme) cue_format=dae_keyword_phoneme; cue_index=textual_phoneme.json ;;
+  *) echo "Unsupported textual input: ${textual_input}" >&2; exit 1 ;;
+esac
 
-phoneme_map=${resource_dir}/phoneme2int.txt
-lexicon=${resource_dir}/word2lexicon.txt
-transcript_nemo_jsonl=${resource_dir}/transcript_nemo/transcript_nemo.jsonl
-for path in "${phoneme_map}" "${lexicon}" "${transcript_nemo_jsonl}"; do
-  if [ ! -f "${path}" ]; then
-    echo "DAE resource not found: ${path}; run Stage 0 first." >&2
-    exit 1
-  fi
-done
+# Cue YAML files differ only in their resource path, not the reader contract.
+write_cues() {
+  local output_yaml=$1
+  local resource=$2
+  cat > "${output_yaml}" <<EOF
+cues:
+  textual:
+    type: json
+    format: ${cue_format}
+    guaranteed: true
+    scope: speaker
+    policy:
+      type: fixed
+      key: mix_spk_id
+      resource: ${resource}
+    collate:
+      align: max
+      pad_mode: constant
+      fill_value: 0
+      emit_present: false
+EOF
+}
 
-# Build standard WeSep audio indexes directly from Libri2Mix.
+# Keep all generated paths absolute so cue indexes can be reused by other recipes.
+mkdir -p "${data}/${noise_type}"
+output_root=$(realpath "${data}/${noise_type}")
 for split in train-100 dev test; do
-  output_dir=${data}/${noise_type}/${split}
+  output_dir="${output_root}/${split}"
   mkdir -p "${output_dir}/cues"
   python "${WESEP_ROOT}/examples/audio/librimix/local/scan_librimix.py" \
     "${mix_data_path}/${split}/mix_${noise_type}" \
     --outfile "${output_dir}/samples.jsonl"
   ln -sf samples.jsonl "${output_dir}/raw.list"
-done
 
-# Preserve complete NeMo ASR transcripts for random training selection.
-python local/dae_kce/build_transcript_cues.py \
-  --samples "${data}/${noise_type}/train-100/samples.jsonl" \
-  --subset train-100 \
-  --transcript-nemo-jsonl "${transcript_nemo_jsonl}" \
-  --phoneme-map "${phoneme_map}" \
-  --lexicon "${lexicon}" \
-  --output "${data}/${noise_type}/train-100/cues/textual.json"
+  # Raw records preserve the full transcript; word selection happens at runtime.
+  python local/build_transcript_cues.py \
+    --samples "${output_dir}/samples.jsonl" \
+    --librispeech-root "${librispeech_root}" \
+    --output "${output_dir}/cues/textual.json"
 
-# Validation uses one deterministic NeMo keyword selection across all epochs.
-python local/dae_kce/build_transcript_cues.py \
-  --samples "${data}/${noise_type}/dev/samples.jsonl" \
-  --subset dev \
-  --transcript-nemo-jsonl "${transcript_nemo_jsonl}" \
-  --phoneme-map "${phoneme_map}" \
-  --lexicon "${lexicon}" \
-  --fixed-words "${dev_keyword_count}" \
-  --seed 42 \
-  --output "${data}/${noise_type}/dev/cues/textual.json"
-
-# Convert all official test conditions and select one as the recipe default.
-for count in 1 2 3 4; do
-  official_cues=${resource_dir}/testset/kw-${count}_seed-42.jsonl
-  if [ ! -f "${official_cues}" ]; then
-    echo "Official DAE test cues not found: ${official_cues}" >&2
-    exit 1
+  # Offline and online tokenization use the same encoding configuration.
+  if [ "${textual_input}" = "dae_phoneme" ]; then
+    bash local/preprocess_textual.sh \
+      --input "${output_dir}/cues/textual.json" \
+      --output "${output_dir}/cues/textual_phoneme.json" \
+      --config "${config}"
   fi
-  python local/dae_kce/convert_official_cues.py \
-    --samples "${data}/${noise_type}/test/samples.jsonl" \
-    --official-cues "${official_cues}" \
-    --output "${data}/${noise_type}/test/cues/textual_kw${count}.json"
-done
-ln -sf "textual_kw${test_keyword_count}.json" \
-  "${data}/${noise_type}/test/cues/textual.json"
 
-# Write the DAE-specific representation and selection policy explicitly.
-cat > "${data}/${noise_type}/train-100/cues.yaml" <<EOF
-cues:
-  textual:
-    type: json
-    format: dae_keyword_phoneme
-    guaranteed: true
-    scope: speaker
-    policy:
-      type: fixed
-      key: mix_spk_id
-      resource: ${data}/${noise_type}/train-100/cues/textual.json
-    selection:
-      type: random
-      word_range: [2, 6]
-    collate:
-      fill_value: 0
-      emit_present: false
-EOF
-
-for split in dev test; do
-  cat > "${data}/${noise_type}/${split}/cues.yaml" <<EOF
-cues:
-  textual:
-    type: json
-    format: dae_keyword_phoneme
-    guaranteed: true
-    scope: speaker
-    policy:
-      type: fixed
-      key: mix_spk_id
-      resource: ${data}/${noise_type}/${split}/cues/textual.json
-    selection:
-      type: fixed
-    collate:
-      fill_value: 0
-      emit_present: false
-EOF
+  # Full transcript indexes remain available independently of official cues.
+  if [ "${split}" = test ]; then
+    cue_yaml="${output_dir}/cues_full.yaml"
+  else
+    cue_yaml="${output_dir}/cues.yaml"
+  fi
+  write_cues "${cue_yaml}" "${output_dir}/cues/${cue_index}"
+  if [ "${split}" = test ]; then
+    for count in 1 2 3 4; do
+      official="dae_kce/testset/kw-${count}_seed-42.jsonl"
+      if [ ! -f "${official}" ]; then
+        echo "Official cues not found: ${official}; run Stage 0 first." >&2
+        exit 1
+      fi
+      index="${output_dir}/cues/textual_kw${count}.json"
+      python local/dae_kce/convert_official_cues.py \
+        --samples "${output_dir}/samples.jsonl" \
+        --official-cues "${official}" \
+        --textual-input "${textual_input}" --output "${index}"
+      write_cues "${output_dir}/cues_kw${count}.yaml" "${index}"
+    done
+  fi
 done
+
+# Advertise the selected storage representation, as in the visual recipe.
+python - "${output_root}/textual_cue.json" "${cue_format}" "${cue_index}" <<'PYTHON'
+import json
+import sys
+with open(sys.argv[1], "w", encoding="utf-8") as stream:
+    json.dump({"type": "json", "format": sys.argv[2], "index": sys.argv[3]},
+              stream, indent=2)
+PYTHON

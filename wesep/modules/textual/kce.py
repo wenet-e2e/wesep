@@ -9,8 +9,6 @@ https://github.com/GnafiY/DAE-TSE
 import logging
 import math
 import os
-import string
-import unicodedata
 from copy import deepcopy
 
 import torch
@@ -89,78 +87,6 @@ DEFAULT_KCE_FBANK_CONFIG = {
     "window_type": "hamming",
     "use_energy": False,
 }
-
-
-class DAEPhonemeTokenizer:
-    """Convert English text to the phoneme IDs used by the DAE KCE."""
-
-    def __init__(self, phoneme_map, lexicon=None):
-        try:
-            import g2p_en
-        except ImportError as error:
-            raise ImportError("DAE text preparation requires g2p_en. "
-                              "Install it with: pip install g2p_en") from error
-
-        self.g2p = g2p_en.G2p()
-        self.phoneme_to_id = {}
-        with open(phoneme_map, encoding="utf-8") as stream:
-            for line in stream:
-                fields = line.strip().split()
-                if len(fields) == 2:
-                    self.phoneme_to_id[fields[0]] = int(fields[1])
-
-        self.lexicon = {}
-        if lexicon and os.path.isfile(lexicon):
-            with open(lexicon, encoding="utf-8") as stream:
-                for line in stream:
-                    fields = line.strip().split(maxsplit=1)
-                    if len(fields) == 2:
-                        self.lexicon[fields[0]] = [
-                            int(value) for value in fields[1].split()
-                        ]
-
-    @staticmethod
-    def normalize(text):
-        """Normalize English text while preserving word apostrophes."""
-        text = (text or "").strip().lower()
-        for apostrophe in ("\u2019", "\u2018", "\u0060", "\u00b4"):
-            text = text.replace(apostrophe, "'")
-        cleaned = []
-        for char in text:
-            if char == "'":
-                cleaned.append(char)
-            elif char in string.punctuation or unicodedata.category(
-                    char).startswith("P"):
-                cleaned.append(" ")
-            else:
-                cleaned.append(char)
-        return " ".join("".join(cleaned).split())
-
-    def encode_words(self, text):
-        """Return normalized words and one phoneme-ID sequence per word."""
-        normalized = self.normalize(text)
-        words = normalized.split()
-        if not words:
-            raise ValueError("Text is empty after DAE normalization")
-        labels = []
-        for word in words:
-            ids = self.lexicon.get(word)
-            if ids is None:
-                phones = self.g2p(word)
-                ids = [
-                    self.phoneme_to_id[phone] for phone in phones
-                    if phone in self.phoneme_to_id
-                ]
-                self.lexicon[word] = ids
-            if not ids:
-                raise ValueError(f"No DAE phoneme IDs generated for: {word}")
-            labels.append(ids)
-        return normalized, words, labels
-
-    def encode(self, text):
-        """Return one flattened phoneme-ID sequence for direct inference."""
-        _, _, labels = self.encode_words(text)
-        return [value for word in labels for value in word]
 
 
 class WordEmbedding(nn.Module):
@@ -547,7 +473,9 @@ class KCE(nn.Module):
         self.fallback_reported = False
         model_config = config.get("model_config")
         fbank_config = config.get("fbank")
-        eps = config.get("eps", torch.finfo(torch.float32).eps)  # Add eps to avoid NaN in fbank
+        eps = config.get(
+            "eps",
+            torch.finfo(torch.float32).eps)  # Add eps to avoid NaN in fbank
 
         # Read available sidecars even when loading the external weights later.
         if self.pretrained:
@@ -580,9 +508,9 @@ class KCE(nn.Module):
             appears frequently during migration.
         """
         hidden_layers = [
-            layer
-            for _ in range(adapter.get("num_layers", 1) - 1)
-            for layer in (nn.Linear(input_dim, input_dim), nn.LayerNorm(input_dim, eps=eps))
+            layer for _ in range(adapter.get("num_layers", 1) - 1)
+            for layer in (nn.Linear(input_dim, input_dim),
+                          nn.LayerNorm(input_dim, eps=eps))
         ]
         self.adapter = nn.Sequential(
             *hidden_layers,

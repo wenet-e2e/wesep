@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # Copyright 2026 Ke Zhang (kylezhang1118@gmail.com)
-#           2026 Haoyu Li (haoyu.li.cs@sjtu.edu.cn)
 
 set -euo pipefail
 . ./path.sh || exit 1
@@ -10,23 +9,24 @@ set -euo pipefail
 stage=-1
 stop_stage=-1
 
-# Stage 0: official DAE-KCE model and text resources
-kce_resource_dir=exp/kce
-
-# Stage 1: Libri2Mix audio and Nemo-transcript keyword cue indexes
+# Stage 1: Libri2Mix audio and keyword cue indexes
 librimix_root=       # Existing Libri2Mix root containing wav16k/min
+librispeech_root=    # LibriSpeech root containing *.trans.txt files
 data=data
 noise_type=clean
-dev_keyword_count=4
-test_keyword_count=4 # Official DAE test condition: 1, 2, 3, or 4 words
+test_cue=4 # 1 | 2 | 3 | 4 | full
+textual_input= # Empty: read dataset_args.cue_processing.textual.input from conf.
+# text: store text; data workers perform phonemization during training.
+# dae_phoneme: precompute per-word phoneme IDs during Stage 1.
+# Optional Stage 1 override; keep it consistent with the training conf.
 
 # Training data format
 data_type=raw # shard/raw
 
 # Training
 gpus=
-config=confs/tse_bsrnn_textual.yaml
-exp_dir=exp/TSE_BSRNN_TEXTUAL_KEYWORDS
+config=confs/tse_bsrnn_dae.yaml # Select text or dae_phoneme in this config.
+exp_dir=
 checkpoint=
 num_avg=
 
@@ -43,27 +43,41 @@ dnsmos_use_gpu=true
 # Resolve values with explicit CLI/submit overrides first, then config, then
 # recipe fallback defaults.
 gpus=$(resolve_yaml_value "${gpus}" "${config}" "gpus" "[0]")
+# Read the nested data-processing choice without loading a model.
+if [ -z "${textual_input}" ]; then
+  textual_input=$(python -c 'import sys, yaml
+with open(sys.argv[1], encoding="utf-8") as stream:
+    print(yaml.safe_load(stream)["dataset_args"]["cue_processing"]["textual"]["input"])
+' "${config}")
+fi
+
 gpus=${gpus// /}
 num_gpus=$(echo "${gpus}" | awk -F ',' '{print NF}')
 exp_dir=$(resolve_yaml_value "${exp_dir}" "${config}" "exp_dir" "exp/TSE_BSRNN_TEXTUAL_KEYWORDS")
 num_avg=$(resolve_yaml_value "${num_avg}" "${config}" "num_avg" "5")
 fs=$(resolve_fs "${fs}" "${config}" "16k")
 
+# Select an existing test index without rebuilding audio or cue records.
+case "${test_cue}" in
+  1|2|3|4) test_cues_name="cues_kw${test_cue}.yaml" ;;
+  full) test_cues_name=cues_full.yaml ;;
+  *) echo "--test_cue must be 1, 2, 3, 4, or full." >&2; exit 1 ;;
+esac
+
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   echo "Stage 0: Download official DAE-KCE resources"
-  local/dae_kce/download_resources.sh \
-    --output-dir "${kce_resource_dir}"
+  bash local/dae_kce/download_resources.sh
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   echo "Stage 1: Build WeSep audio and textual cue indexes"
-  local/prepare_data.sh \
+  bash local/prepare_data.sh \
     --mix-data-path "${librimix_root}/wav16k/min" \
-    --resource-dir "${kce_resource_dir}" \
+    --librispeech-root "${librispeech_root}" \
     --data "${data}" \
     --noise-type "${noise_type}" \
-    --dev-keyword-count "${dev_keyword_count}" \
-    --test-keyword-count "${test_keyword_count}"
+    --textual-input "${textual_input}" \
+    --config "${config}"
 fi
 
 data=${data}/${noise_type}
@@ -130,7 +144,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     --exp_dir "${exp_dir}" \
     --data_type "${data_type}" \
     --test_data "${data}/test/${data_type}.list" \
-    --test_cues "${data}/test/cues.yaml" \
+    --test_cues "${data}/test/${test_cues_name}" \
     --test_samples "${data}/test/samples.jsonl" \
     --save_wav "${save_results}" \
     ${checkpoint:+--checkpoint "${checkpoint}"}

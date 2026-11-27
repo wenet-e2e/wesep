@@ -20,6 +20,18 @@ def load_json(path):
         return json.load(f)
 
 
+def write_json_records(path, records):
+    """Write a string-keyed JSON object with one complete record per line."""
+    with open(path, "w", encoding="utf-8") as stream:
+        stream.write("{\n")
+        for index, (key, record) in enumerate(records.items()):
+            name = json.dumps(key, ensure_ascii=False)
+            value = json.dumps(record, ensure_ascii=False)
+            comma = "," if index + 1 < len(records) else ""
+            stream.write(f"  {name}: {value}{comma}\n")
+        stream.write("}\n")
+
+
 def read_lists(list_file):
     """list_file: only 1 column"""
     lists = []

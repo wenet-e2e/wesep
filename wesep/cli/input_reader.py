@@ -51,7 +51,7 @@ class DirectInputReader:
                     f"Textual tokenizer resource not found: {value}")
             return None
 
-        from wesep.modules.textual.kce import DAEPhonemeTokenizer
+        from wesep.modules.textual.tokenizer import DAEPhonemeTokenizer
         self.textual_tokenizer = DAEPhonemeTokenizer(
             resolve_path(tokenizer_conf["phoneme_map"], required=True),
             resolve_path(tokenizer_conf.get("lexicon"), required=False),
